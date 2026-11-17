@@ -1,8 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:spendly/features/ai_advisor/data/gemini_chat_service.dart';
 import 'package:spendly/features/ai_advisor/presentation/ai_advisor_screen.dart';
 import 'package:spendly/features/ai_advisor/presentation/ai_chat_cubit.dart';
+import 'package:spendly/features/expenses/data/expense_model.dart';
 import 'package:spendly/features/expenses/presentation/expense_cubit.dart';
 
 class FakeGeminiChatService implements GeminiChatService {
@@ -28,6 +31,33 @@ class FakeGeminiChatService implements GeminiChatService {
       throw const GeminiFailure('Gemini API key is missing.');
     }
     return reply;
+  }
+
+  @override
+  Future<ParsedExpenseDraft> parseExpenseFromText(
+    String input, {
+    DateTime? now,
+  }) async {
+    return ParsedExpenseDraft(
+      title: input,
+      amountMinor: 10000,
+      category: ExpenseCategory.other,
+      date: now ?? DateTime.now(),
+    );
+  }
+
+  @override
+  Future<ParsedExpenseDraft> parseExpenseFromReceipt(
+    Uint8List imageBytes, {
+    String mimeType = 'image/jpeg',
+    DateTime? now,
+  }) async {
+    return ParsedExpenseDraft(
+      title: 'Receipt',
+      amountMinor: 25000,
+      category: ExpenseCategory.shopping,
+      date: now ?? DateTime.now(),
+    );
   }
 }
 

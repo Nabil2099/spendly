@@ -6,15 +6,18 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/money_formatter.dart';
+import '../../ai_advisor/data/gemini_chat_service.dart';
 import '../data/expense_model.dart';
 import 'expense_cubit.dart';
 import 'widgets/category_badge.dart';
+import 'widgets/receipt_scanner_helper.dart';
 
 /// Single screen used for both adding a new expense and editing an existing one.
 class ExpenseFormScreen extends StatefulWidget {
-  const ExpenseFormScreen({super.key, this.existing});
+  const ExpenseFormScreen({super.key, this.existing, this.initialDraft});
 
   final Expense? existing;
+  final ParsedExpenseDraft? initialDraft;
 
   bool get isEditing => existing != null;
 
@@ -29,21 +32,78 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
   late final TextEditingController _noteController;
   late ExpenseCategory _selectedCategory;
   late DateTime _selectedDate;
+  bool _isScanning = false;
 
   @override
   void initState() {
     super.initState();
     final existing = widget.existing;
+    final draft = widget.initialDraft;
+    final initialMinor = existing?.amountMinor ?? draft?.amountMinor;
+
     _amountController = TextEditingController(
-      text: existing != null
-          ? MoneyFormatter.formatEditable(existing.amountMinor)
+      text: initialMinor != null
+          ? MoneyFormatter.formatEditable(initialMinor)
           : '',
     );
-    _titleController = TextEditingController(text: existing?.title ?? '');
-    _noteController = TextEditingController(text: existing?.note ?? '');
+    _titleController = TextEditingController(
+      text: existing?.title ?? draft?.title ?? '',
+    );
+    _noteController = TextEditingController(
+      text: existing?.note ?? draft?.note ?? '',
+    );
     _selectedCategory =
-        existing?.category ?? context.read<ExpenseCubit>().state.lastCategory;
-    _selectedDate = existing?.date ?? DateTime.now();
+        existing?.category ??
+        draft?.category ??
+        context.read<ExpenseCubit>().state.lastCategory;
+    _selectedDate = existing?.date ?? draft?.date ?? DateTime.now();
+  }
+
+  Future<void> _scanReceipt() async {
+    try {
+      final draft = await pickAndScanReceipt(
+        context,
+        onParsingStarted: () {
+          if (mounted) setState(() => _isScanning = true);
+        },
+      );
+      if (!mounted) return;
+      setState(() => _isScanning = false);
+      if (draft == null) return;
+
+      if (draft.amountMinor != null) {
+        _amountController.text = MoneyFormatter.formatEditable(
+          draft.amountMinor!,
+        );
+      }
+      if (draft.title.isNotEmpty) {
+        _titleController.text = draft.title;
+      }
+      if (draft.note.isNotEmpty) {
+        _noteController.text = draft.note;
+      }
+      setState(() {
+        _selectedCategory = draft.category;
+        _selectedDate = draft.date;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Receipt scanned! Review details and tap Save.'),
+        ),
+      );
+    } on GeminiFailure catch (e) {
+      if (!mounted) return;
+      setState(() => _isScanning = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isScanning = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not scan receipt. Try again.')),
+      );
+    }
   }
 
   @override
@@ -118,9 +178,34 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (!widget.isEditing) ...[
+                      OutlinedButton.icon(
+                        onPressed: (isSaving || _isScanning)
+                            ? null
+                            : _scanReceipt,
+                        icon: _isScanning
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.document_scanner_outlined,
+                                color: AppColors.slateBlue,
+                              ),
+                        label: Text(
+                          _isScanning
+                              ? 'Scanning receipt with AI...'
+                              : 'Scan Receipt with AI',
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
                     _AmountCard(
                       controller: _amountController,
-                      enabled: !isSaving,
+                      enabled: !isSaving && !_isScanning,
                     ),
                     const SizedBox(height: 20),
                     const Text(

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/ai_advisor/data/gemini_chat_service.dart';
 import '../../features/ai_advisor/presentation/ai_advisor_screen.dart';
 import '../../features/auth/presentation/auth_cubit.dart';
 import '../../features/auth/presentation/auth_view.dart';
@@ -176,8 +177,12 @@ GoRouter createAppRouter({
       ),
       GoRoute(
         path: AppRoutes.expenseNew,
-        pageBuilder: (context, state) =>
-            _slideUpPage(state: state, child: const ExpenseFormScreen()),
+        pageBuilder: (context, state) => _slideUpPage(
+          state: state,
+          child: ExpenseFormScreen(
+            initialDraft: state.extra as ParsedExpenseDraft?,
+          ),
+        ),
       ),
       GoRoute(
         path: AppRoutes.expenseEdit,

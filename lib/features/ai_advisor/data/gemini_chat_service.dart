@@ -1,5 +1,77 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+import '../../../core/utils/money_formatter.dart';
+import '../../expenses/data/expense_model.dart';
+
+/// Structured expense extracted by Gemini from natural language or a receipt image.
+class ParsedExpenseDraft {
+  const ParsedExpenseDraft({
+    required this.title,
+    this.amountMinor,
+    required this.category,
+    required this.date,
+    this.note = '',
+  });
+
+  final String title;
+  final int? amountMinor;
+  final ExpenseCategory category;
+  final DateTime date;
+  final String note;
+
+  factory ParsedExpenseDraft.fromJsonString(
+    String raw, {
+    DateTime? fallbackDate,
+  }) {
+    final cleaned = raw
+        .trim()
+        .replaceAll(RegExp(r'^```(?:json)?\s*', multiLine: true), '')
+        .replaceAll(RegExp(r'```\s*$', multiLine: true), '')
+        .trim();
+
+    final decoded = jsonDecode(cleaned);
+    if (decoded is! Map<String, dynamic>) {
+      throw const FormatException('Expected JSON object');
+    }
+
+    final title = (decoded['title'] as String? ?? '').trim();
+    final rawAmount = decoded['amount'];
+    final amountText = rawAmount is num
+        ? rawAmount.toStringAsFixed(2)
+        : (rawAmount?.toString() ?? '');
+    final amountMinor = MoneyFormatter.parseToMinor(amountText);
+
+    final categoryId = (decoded['category'] as String? ?? '').toLowerCase();
+    final category = ExpenseCategory.fromId(categoryId);
+
+    final dateStr = (decoded['date'] as String? ?? '').trim();
+    final parsedDate = DateTime.tryParse(dateStr);
+    final baseDate = fallbackDate ?? DateTime.now();
+    final resolvedDate = parsedDate != null
+        ? DateTime(
+            parsedDate.year,
+            parsedDate.month,
+            parsedDate.day,
+            baseDate.hour,
+            baseDate.minute,
+          )
+        : baseDate;
+
+    final note = (decoded['note'] as String? ?? '').trim();
+
+    return ParsedExpenseDraft(
+      title: title,
+      amountMinor: amountMinor,
+      category: category,
+      date: resolvedDate,
+      note: note,
+    );
+  }
+}
 
 /// Single message in the Spendly AI advisor conversation.
 class ChatMessage {
@@ -29,6 +101,15 @@ abstract class GeminiChatService {
   Future<String> sendMessage({
     required List<ChatMessage> history,
     required String systemContext,
+  });
+  Future<ParsedExpenseDraft> parseExpenseFromText(
+    String input, {
+    DateTime? now,
+  });
+  Future<ParsedExpenseDraft> parseExpenseFromReceipt(
+    Uint8List imageBytes, {
+    String mimeType = 'image/jpeg',
+    DateTime? now,
   });
 }
 
@@ -142,6 +223,140 @@ class HttpGeminiChatService implements GeminiChatService {
       );
     } catch (_) {
       throw const GeminiFailure('Something went wrong talking to Gemini AI.');
+    }
+  }
+
+  @override
+  Future<ParsedExpenseDraft> parseExpenseFromText(
+    String input, {
+    DateTime? now,
+  }) async {
+    final reference = now ?? DateTime.now();
+    final todayIso =
+        '${reference.year}-${reference.month.toString().padLeft(2, '0')}-${reference.day.toString().padLeft(2, '0')}';
+
+    final raw = await _generateJson(
+      parts: [
+        {
+          'text':
+              '''
+Extract an expense from this user note: "$input"
+Today's date is $todayIso.
+Return ONLY a JSON object with:
+- "title": short merchant or expense title (string)
+- "amount": positive number in EGP (number, or null if not mentioned)
+- "category": one of ["food", "transport", "bills", "shopping", "health", "entertainment", "other"]
+- "date": ISO date "YYYY-MM-DD" (resolve "yesterday" or relative days from $todayIso)
+- "note": optional extra detail (string, empty if none)
+''',
+        },
+      ],
+      fallbackDate: reference,
+    );
+    return raw;
+  }
+
+  @override
+  Future<ParsedExpenseDraft> parseExpenseFromReceipt(
+    Uint8List imageBytes, {
+    String mimeType = 'image/jpeg',
+    DateTime? now,
+  }) async {
+    final reference = now ?? DateTime.now();
+    final todayIso =
+        '${reference.year}-${reference.month.toString().padLeft(2, '0')}-${reference.day.toString().padLeft(2, '0')}';
+
+    return _generateJson(
+      parts: [
+        {
+          'inline_data': {
+            'mime_type': mimeType,
+            'data': base64Encode(imageBytes),
+          },
+        },
+        {
+          'text':
+              '''
+Read this receipt image and extract the expense details.
+Today's date is $todayIso (use it if no date is visible on the receipt).
+Return ONLY a JSON object with:
+- "title": store/merchant name or short description (string)
+- "amount": final total paid as a positive number (number, or null if unreadable)
+- "category": one of ["food", "transport", "bills", "shopping", "health", "entertainment", "other"]
+- "date": ISO date "YYYY-MM-DD"
+- "note": optional short summary of items (string, empty if none)
+''',
+        },
+      ],
+      fallbackDate: reference,
+    );
+  }
+
+  Future<ParsedExpenseDraft> _generateJson({
+    required List<Map<String, dynamic>> parts,
+    required DateTime fallbackDate,
+  }) async {
+    if (!isConfigured) {
+      throw const GeminiFailure(
+        'Gemini API key is missing. Add GEMINI_API_KEY to your .env file.',
+      );
+    }
+
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/models/$modelName:generateContent',
+        queryParameters: {'key': _apiKey},
+        data: {
+          'contents': [
+            {'role': 'user', 'parts': parts},
+          ],
+          'generationConfig': {
+            'temperature': 0.1,
+            'responseMimeType': 'application/json',
+          },
+        },
+      );
+
+      final candidates = response.data?['candidates'] as List<dynamic>?;
+      if (candidates == null || candidates.isEmpty) {
+        throw const GeminiFailure('Could not extract expense details.');
+      }
+
+      final first = candidates.first as Map<String, dynamic>;
+      final content = first['content'] as Map<String, dynamic>?;
+      final resParts = content?['parts'] as List<dynamic>?;
+      final text = resParts != null && resParts.isNotEmpty
+          ? (resParts.first as Map<String, dynamic>)['text'] as String?
+          : null;
+
+      if (text == null || text.trim().isEmpty) {
+        throw const GeminiFailure('Could not extract expense details.');
+      }
+
+      return ParsedExpenseDraft.fromJsonString(text, fallbackDate: fallbackDate);
+    } on GeminiFailure {
+      rethrow;
+    } on FormatException {
+      throw const GeminiFailure(
+        'AI could not understand that expense. Try rephrasing or enter manually.',
+      );
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      if (status == 400 || status == 403) {
+        throw const GeminiFailure(
+          'Invalid Gemini API key or model. Check GEMINI_API_KEY in .env.',
+        );
+      }
+      if (status == 429) {
+        throw const GeminiFailure(
+          'Gemini rate limit reached. Please wait a moment and try again.',
+        );
+      }
+      throw const GeminiFailure(
+        'Could not reach Gemini AI. Check your internet connection.',
+      );
+    } catch (_) {
+      throw const GeminiFailure('Could not parse expense details.');
     }
   }
 }

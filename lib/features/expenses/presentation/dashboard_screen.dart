@@ -6,17 +6,20 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/di/service_locator.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/theme_cubit.dart';
 import '../../../core/utils/money_formatter.dart';
+import '../../ai_advisor/data/gemini_chat_service.dart';
 import '../../profile/presentation/profile_cubit.dart';
 import '../data/expense_model.dart';
 import 'expense_cubit.dart';
 import 'widgets/budget_dialog.dart';
 import 'widgets/expense_list_tile.dart';
 import 'widgets/month_picker_row.dart';
+import 'widgets/receipt_scanner_helper.dart';
 import 'widgets/spending_category_chart.dart';
 
 /// Main Dashboard screen showing monthly total, budget ring, category chart, and recent expenses.
@@ -45,6 +48,8 @@ class DashboardScreen extends StatelessWidget {
                   const SizedBox(height: 14),
                 ],
                 _FadeSlideIn(delayMs: 40, child: _SummaryCard(state: state)),
+                const SizedBox(height: 12),
+                const _FadeSlideIn(delayMs: 80, child: _AiQuickAddBar()),
                 const SizedBox(height: 16),
                 if (state.isLoading && state.expenses.isEmpty)
                   const Padding(
@@ -484,6 +489,137 @@ class _FadeSlideIn extends StatelessWidget {
         );
       },
       child: child,
+    );
+  }
+}
+
+class _AiQuickAddBar extends StatefulWidget {
+  const _AiQuickAddBar();
+
+  @override
+  State<_AiQuickAddBar> createState() => _AiQuickAddBarState();
+}
+
+class _AiQuickAddBarState extends State<_AiQuickAddBar> {
+  final _controller = TextEditingController();
+  bool _isBusy = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _parseText() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty || _isBusy) return;
+
+    setState(() => _isBusy = true);
+    try {
+      final draft = await getIt<GeminiChatService>().parseExpenseFromText(text);
+      if (!mounted) return;
+      _controller.clear();
+      setState(() => _isBusy = false);
+      context.push(AppRoutes.expenseNew, extra: draft);
+    } on GeminiFailure catch (e) {
+      if (!mounted) return;
+      setState(() => _isBusy = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isBusy = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not parse expense. Try again.')),
+      );
+    }
+  }
+
+  Future<void> _scanReceipt() async {
+    if (_isBusy) return;
+    try {
+      final draft = await pickAndScanReceipt(
+        context,
+        onParsingStarted: () {
+          if (mounted) setState(() => _isBusy = true);
+        },
+      );
+      if (!mounted) return;
+      setState(() => _isBusy = false);
+      if (draft == null) return;
+      context.push(AppRoutes.expenseNew, extra: draft);
+    } on GeminiFailure catch (e) {
+      if (!mounted) return;
+      setState(() => _isBusy = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isBusy = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not scan receipt. Try again.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                enabled: !_isBusy,
+                textInputAction: TextInputAction.send,
+                onSubmitted: (_) => _parseText(),
+                decoration: const InputDecoration(
+                  hintText: 'Quick add: "Coffee 65 yesterday"',
+                  filled: false,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 6),
+                  isDense: true,
+                ),
+              ),
+            ),
+            if (_isBusy)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 10),
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
+            else ...[
+              IconButton(
+                tooltip: 'Parse with AI',
+                onPressed: _parseText,
+                icon: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: AppColors.primaryGreen,
+                  size: 20,
+                ),
+              ),
+              IconButton(
+                tooltip: 'Scan receipt with AI',
+                onPressed: _scanReceipt,
+                icon: const Icon(
+                  Icons.document_scanner_outlined,
+                  color: AppColors.slateBlue,
+                  size: 20,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
