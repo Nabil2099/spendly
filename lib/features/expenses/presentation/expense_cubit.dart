@@ -82,6 +82,86 @@ class ExpenseState {
     return totals;
   }
 
+  /// 6-month spending window ending at [selectedMonth] (oldest to newest).
+  List<({DateTime month, int totalMinor})> get sixMonthTotalsMinor {
+    final result = <({DateTime month, int totalMinor})>[];
+    for (var offset = 5; offset >= 0; offset--) {
+      final month = DateTime(
+        selectedMonth.year,
+        selectedMonth.month - offset,
+        1,
+      );
+      final total = expenses
+          .where(
+            (e) => e.date.year == month.year && e.date.month == month.month,
+          )
+          .fold<int>(0, (sum, e) => sum + e.amountMinor);
+      result.add((month: month, totalMinor: total));
+    }
+    return result;
+  }
+
+  /// Calendar day in [selectedMonth] with the highest total spending.
+  ({DateTime day, int totalMinor})? get highestSpendingDay {
+    if (monthlyExpenses.isEmpty) return null;
+    final dayTotals = <DateTime, int>{};
+    for (final e in monthlyExpenses) {
+      final day = DateTime(e.date.year, e.date.month, e.date.day);
+      dayTotals[day] = (dayTotals[day] ?? 0) + e.amountMinor;
+    }
+    MapEntry<DateTime, int>? best;
+    for (final entry in dayTotals.entries) {
+      if (best == null || entry.value > best.value) {
+        best = entry;
+      }
+    }
+    if (best == null) return null;
+    return (day: best.key, totalMinor: best.value);
+  }
+
+  /// Average spending per transaction in [selectedMonth].
+  int get averageTransactionMinor {
+    final count = monthlyExpenses.length;
+    if (count == 0) return 0;
+    return (monthlyTotalMinor / count).round();
+  }
+
+  /// Highest-total expense title/merchant in [selectedMonth].
+  ({String title, int totalMinor, int count})? get topExpenseTitle {
+    if (monthlyExpenses.isEmpty) return null;
+    final totals = <String, ({String display, int totalMinor, int count})>{};
+    for (final e in monthlyExpenses) {
+      final normalized = e.title.trim().toLowerCase();
+      if (normalized.isEmpty) continue;
+      final existing = totals[normalized];
+      if (existing == null) {
+        totals[normalized] = (
+          display: e.title.trim(),
+          totalMinor: e.amountMinor,
+          count: 1,
+        );
+      } else {
+        totals[normalized] = (
+          display: existing.display,
+          totalMinor: existing.totalMinor + e.amountMinor,
+          count: existing.count + 1,
+        );
+      }
+    }
+    ({String display, int totalMinor, int count})? best;
+    for (final entry in totals.values) {
+      if (best == null || entry.totalMinor > best.totalMinor) {
+        best = entry;
+      }
+    }
+    if (best == null) return null;
+    return (
+      title: best.display,
+      totalMinor: best.totalMinor,
+      count: best.count,
+    );
+  }
+
   /// Filtered list for the Transactions screen.
   List<Expense> get filteredTransactions {
     final query = searchQuery.trim().toLowerCase();

@@ -5,7 +5,7 @@ import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 
-/// Main shell (Dashboard, Transactions & AI) with a floating bottom nav bar.
+/// Main shell (Home, History, Stats & AI) with a floating bottom nav bar.
 class MainShell extends StatelessWidget {
   const MainShell({super.key, required this.navigationShell});
 
@@ -14,7 +14,7 @@ class MainShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selectedIndex = navigationShell.currentIndex;
-    final hideNavBar = selectedIndex == 2;
+    final hideNavBar = selectedIndex == 3;
 
     return Scaffold(
       extendBody: !hideNavBar,
@@ -44,11 +44,11 @@ class MainShell extends StatelessWidget {
                 key: const ValueKey('visible_nav'),
                 top: false,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                  padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
                   child: Center(
                     heightFactor: 1,
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 520),
+                      constraints: const BoxConstraints(maxWidth: 560),
                       child: Row(
                         children: [
                           Expanded(
@@ -93,18 +93,27 @@ class MainShell extends StatelessWidget {
                                   ),
                                   Expanded(
                                     child: _FloatingNavItem(
+                                      icon: Icons.insights_outlined,
+                                      activeIcon: Icons.insights_rounded,
+                                      label: 'Stats',
+                                      selected: selectedIndex == 2,
+                                      onTap: () => navigationShell.goBranch(2),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: _FloatingNavItem(
                                       icon: Icons.auto_awesome_outlined,
                                       activeIcon: Icons.auto_awesome_rounded,
                                       label: 'AI',
-                                      selected: selectedIndex == 2,
-                                      onTap: () => navigationShell.goBranch(2),
+                                      selected: selectedIndex == 3,
+                                      onTap: () => navigationShell.goBranch(3),
                                     ),
                                   ),
                                 ],
                               ),
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 8),
                           Material(
                             color: AppColors.primaryGreen,
                             shape: const CircleBorder(),
@@ -116,12 +125,12 @@ class MainShell extends StatelessWidget {
                               onTap: () => context.push(AppRoutes.expenseNew),
                               customBorder: const CircleBorder(),
                               child: const SizedBox(
-                                width: 54,
-                                height: 54,
+                                width: 52,
+                                height: 52,
                                 child: Icon(
                                   Icons.add_rounded,
                                   color: Colors.white,
-                                  size: 28,
+                                  size: 27,
                                 ),
                               ),
                             ),
@@ -160,7 +169,7 @@ class _FloatingNavItem extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
         decoration: BoxDecoration(
           color: selected ? context.greenTint : Colors.transparent,
           borderRadius: BorderRadius.circular(22),
@@ -170,10 +179,10 @@ class _FloatingNavItem extends StatelessWidget {
           children: [
             Icon(
               selected ? activeIcon : icon,
-              size: 20,
+              size: 19,
               color: selected ? AppColors.primaryGreen : context.textSecondary,
             ),
-            const SizedBox(width: 5),
+            const SizedBox(width: 4),
             Flexible(
               child: Text(
                 label,
@@ -183,7 +192,7 @@ class _FloatingNavItem extends StatelessWidget {
                   color: selected
                       ? AppColors.primaryGreen
                       : context.textSecondary,
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 ),
               ),

@@ -7,6 +7,7 @@ import '../../features/ai_advisor/presentation/ai_advisor_screen.dart';
 import '../../features/auth/presentation/auth_cubit.dart';
 import '../../features/auth/presentation/auth_view.dart';
 import '../../features/expenses/data/expense_model.dart';
+import '../../features/expenses/presentation/analytics_screen.dart';
 import '../../features/expenses/presentation/dashboard_screen.dart';
 import '../../features/expenses/presentation/expense_form_screen.dart';
 import '../../features/expenses/presentation/main_shell.dart';
@@ -21,6 +22,7 @@ abstract final class AppRoutes {
   static const String auth = '/auth';
   static const String dashboard = '/dashboard';
   static const String transactions = '/transactions';
+  static const String analytics = '/analytics';
   static const String expenseNew = '/expense/new';
   static const String expenseEdit = '/expense/edit';
   static const String profile = '/profile';
@@ -157,6 +159,14 @@ GoRouter createAppRouter({
           StatefulShellBranch(
             routes: [
               GoRoute(
+                path: AppRoutes.analytics,
+                builder: (context, state) => const AnalyticsScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
                 path: AppRoutes.assistant,
                 builder: (context, state) => const AiAdvisorScreen(),
               ),
@@ -196,7 +206,7 @@ class _AnimatedShellContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isAi = currentIndex == 2;
+    final isAi = currentIndex == 3;
     return AnimatedSwitcher(
       duration: Duration(milliseconds: isAi ? 320 : 220),
       switchInCurve: Curves.easeOutCubic,

@@ -140,4 +140,53 @@ void main() {
     expect(cubit.state.monthlyTotalMinor, 0);
     expect(cubit.state.selectedMonthKey, MoneyFormatter.monthKey(now));
   });
+
+  test(
+    'computes 6-month totals, highest day, average, and top title',
+    () async {
+      await cubit.bindUser('user_1');
+      final targetMonth = DateTime(2026, 11, 1);
+      await cubit.selectMonth(targetMonth);
+
+      await cubit.saveExpense(
+        title: 'Coffee',
+        amountMinor: 5000,
+        category: ExpenseCategory.food,
+        date: DateTime(2026, 11, 10, 9),
+      );
+      await cubit.saveExpense(
+        title: 'coffee',
+        amountMinor: 7000,
+        category: ExpenseCategory.food,
+        date: DateTime(2026, 11, 10, 14),
+      );
+      await cubit.saveExpense(
+        title: 'Uber',
+        amountMinor: 9000,
+        category: ExpenseCategory.transport,
+        date: DateTime(2026, 11, 12, 18),
+      );
+      await cubit.saveExpense(
+        title: 'Internet',
+        amountMinor: 30000,
+        category: ExpenseCategory.bills,
+        date: DateTime(2026, 9, 5),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      final sixMonths = cubit.state.sixMonthTotalsMinor;
+      expect(sixMonths.length, 6);
+      expect(sixMonths.first.month, DateTime(2026, 6, 1));
+      expect(sixMonths.last.month, DateTime(2026, 11, 1));
+      expect(sixMonths[3].totalMinor, 30000); // Sep 2026
+      expect(sixMonths.last.totalMinor, 21000); // Nov 2026
+
+      expect(cubit.state.highestSpendingDay?.day, DateTime(2026, 11, 10));
+      expect(cubit.state.highestSpendingDay?.totalMinor, 12000);
+      expect(cubit.state.averageTransactionMinor, 7000);
+      expect(cubit.state.topExpenseTitle?.title.toLowerCase(), 'coffee');
+      expect(cubit.state.topExpenseTitle?.totalMinor, 12000);
+      expect(cubit.state.topExpenseTitle?.count, 2);
+    },
+  );
 }

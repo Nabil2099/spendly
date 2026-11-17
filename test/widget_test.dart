@@ -76,10 +76,18 @@ void main() {
 
     expect(find.text('Search transactions...'), findsOneWidget);
 
+    await tester.tap(find.text('Stats'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Analytics'), findsOneWidget);
+    expect(find.text('6-Month Comparison'), findsOneWidget);
+    expect(find.text('Category Breakdown'), findsOneWidget);
+
     await tester.tap(find.text('AI'));
     await tester.pumpAndSettle();
 
     expect(find.text('Spendly AI Advisor'), findsOneWidget);
+    expect(find.text('Stats'), findsNothing);
   });
 
   testWidgets(
