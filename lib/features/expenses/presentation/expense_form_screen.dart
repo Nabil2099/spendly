@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -89,7 +90,7 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
 
     if (!mounted) return;
     if (success) {
-      Navigator.of(context).pop(true);
+      context.pop(true);
     } else {
       final msg =
           cubit.state.errorMessage ?? 'Could not save expense. Try again.';
@@ -229,7 +230,7 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
                           child: OutlinedButton(
                             onPressed: isSaving
                                 ? null
-                                : () => Navigator.of(context).pop(false),
+                                : () => context.pop(false),
                             child: const Text('Cancel'),
                           ),
                         ),

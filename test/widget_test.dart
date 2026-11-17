@@ -1,15 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:spendly/app.dart';
+import 'package:spendly/core/di/service_locator.dart';
 import 'package:spendly/features/auth/data/auth_repository.dart';
 import 'package:spendly/features/auth/presentation/auth_cubit.dart';
 import 'package:spendly/features/auth/presentation/auth_view.dart';
 import 'package:spendly/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:spendly/features/onboarding/presentation/splash_screen.dart';
 import 'package:spendly/features/profile/data/profile_repository.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'expense_cubit_test.dart';
 
@@ -54,18 +55,17 @@ void main() {
       await budgetRepo.dispose();
     });
 
-    await tester.pumpWidget(
-      SpendlyApp(
-        isFirebaseConfigured: true,
-        showSplash: false,
-        authRepository: FakeAuthRepository(
-          const AppUser(uid: 'u1', email: 'student@spendly.app'),
-        ),
-        expenseRepository: expenseRepo,
-        budgetRepository: budgetRepo,
-        profileRepository: FakeProfileRepository(),
+    await setupServiceLocator(
+      isFirebaseConfigured: true,
+      authRepository: FakeAuthRepository(
+        const AppUser(uid: 'u1', email: 'student@spendly.app'),
       ),
+      expenseRepository: expenseRepo,
+      budgetRepository: budgetRepo,
+      profileRepository: FakeProfileRepository(),
     );
+
+    await tester.pumpWidget(const SpendlyApp(showSplash: false));
     await tester.pumpAndSettle();
 
     expect(find.text('Spendly'), findsOneWidget);
@@ -119,46 +119,47 @@ void main() {
     },
   );
 
-  testWidgets('AuthView shows Confirm Password in register mode and validates match', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: BlocProvider(
-          create: (_) => AuthCubit(
-            repository: FakeAuthRepository(null),
-            isFirebaseConfigured: true,
+  testWidgets(
+    'AuthView shows Confirm Password in register mode and validates match',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: BlocProvider(
+            create: (_) => AuthCubit(
+              repository: FakeAuthRepository(null),
+              isFirebaseConfigured: true,
+            ),
+            child: const AuthView(),
           ),
-          child: const AuthView(),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('Confirm Password'), findsNothing);
+      expect(find.text('Confirm Password'), findsNothing);
 
-    await tester.tap(find.text('New to Spendly? Create an account'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('New to Spendly? Create an account'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Confirm Password'), findsOneWidget);
+      expect(find.text('Confirm Password'), findsOneWidget);
 
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'Email'),
-      'user@spendly.app',
-    );
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'Password'),
-      'secret123',
-    );
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'Confirm Password'),
-      'different',
-    );
-    await tester.tap(find.text('Create Account'));
-    await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Email'),
+        'user@spendly.app',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Password'),
+        'secret123',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Confirm Password'),
+        'different',
+      );
+      await tester.tap(find.text('Create Account'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Passwords do not match.'), findsOneWidget);
-  });
+      expect(find.text('Passwords do not match.'), findsOneWidget);
+    },
+  );
 
   testWidgets('SplashScreen invokes onFinished after delay', (tester) async {
     var finished = false;

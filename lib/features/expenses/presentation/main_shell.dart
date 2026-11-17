@@ -1,50 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
-import 'dashboard_screen.dart';
-import 'expense_form_screen.dart';
-import 'transactions_screen.dart';
 
 /// Main 2-tab shell (Dashboard & Transactions) with a floating bottom nav bar.
-class MainShell extends StatefulWidget {
-  const MainShell({super.key});
+class MainShell extends StatelessWidget {
+  const MainShell({super.key, required this.navigationShell});
 
-  @override
-  State<MainShell> createState() => _MainShellState();
-}
-
-class _MainShellState extends State<MainShell> {
-  int _selectedIndex = 0;
-
-  void _openAddExpense() {
-    Navigator.of(context).push(
-      PageRouteBuilder<bool>(
-        transitionDuration: const Duration(milliseconds: 280),
-        reverseTransitionDuration: const Duration(milliseconds: 220),
-        pageBuilder: (_, _, _) => const ExpenseFormScreen(),
-        transitionsBuilder: (_, animation, _, child) {
-          final curved = CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeOutCubic,
-          );
-          return FadeTransition(
-            opacity: curved,
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0, 0.06),
-                end: Offset.zero,
-              ).animate(curved),
-              child: child,
-            ),
-          );
-        },
-      ),
-    );
-  }
+  final StatefulNavigationShell navigationShell;
 
   @override
   Widget build(BuildContext context) {
+    final selectedIndex = navigationShell.currentIndex;
+
     return Scaffold(
       extendBody: true,
       body: SafeArea(
@@ -52,18 +22,7 @@ class _MainShellState extends State<MainShell> {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 900),
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 240),
-              switchInCurve: Curves.easeOut,
-              switchOutCurve: Curves.easeIn,
-              child: _selectedIndex == 0
-                  ? DashboardScreen(
-                      key: const ValueKey('dashboard'),
-                      onOpenTransactions: () =>
-                          setState(() => _selectedIndex = 1),
-                    )
-                  : const TransactionsScreen(key: ValueKey('transactions')),
-            ),
+            child: navigationShell,
           ),
         ),
       ),
@@ -101,8 +60,8 @@ class _MainShellState extends State<MainShell> {
                         icon: Icons.home_outlined,
                         activeIcon: Icons.home_rounded,
                         label: 'Dashboard',
-                        selected: _selectedIndex == 0,
-                        onTap: () => setState(() => _selectedIndex = 0),
+                        selected: selectedIndex == 0,
+                        onTap: () => navigationShell.goBranch(0),
                       ),
                     ),
                     Padding(
@@ -115,7 +74,7 @@ class _MainShellState extends State<MainShell> {
                           alpha: 0.4,
                         ),
                         child: InkWell(
-                          onTap: _openAddExpense,
+                          onTap: () => context.push(AppRoutes.expenseNew),
                           customBorder: const CircleBorder(),
                           child: const SizedBox(
                             width: 48,
@@ -134,8 +93,8 @@ class _MainShellState extends State<MainShell> {
                         icon: Icons.receipt_long_outlined,
                         activeIcon: Icons.receipt_long_rounded,
                         label: 'Transactions',
-                        selected: _selectedIndex == 1,
-                        onTap: () => setState(() => _selectedIndex = 1),
+                        selected: selectedIndex == 1,
+                        onTap: () => navigationShell.goBranch(1),
                       ),
                     ),
                   ],

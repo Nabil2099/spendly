@@ -3,17 +3,17 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/theme_cubit.dart';
 import '../../../core/utils/money_formatter.dart';
 import '../../profile/presentation/profile_cubit.dart';
-import '../../profile/presentation/profile_screen.dart';
 import '../data/expense_model.dart';
 import 'expense_cubit.dart';
-import 'expense_form_screen.dart';
 import 'widgets/budget_dialog.dart';
 import 'widgets/expense_list_tile.dart';
 import 'widgets/month_picker_row.dart';
@@ -58,8 +58,10 @@ class DashboardScreen extends StatelessWidget {
                       builder: (context, constraints) {
                         final isTablet = constraints.maxWidth >= 680;
                         final chartCard = SpendingCategoryChart(
+                          expenses: state.monthlyExpenses,
                           categoryTotalsMinor: state.categoryTotalsMinor,
                           totalMinor: state.monthlyTotalMinor,
+                          selectedMonth: state.selectedMonth,
                           onSeeAll: onOpenTransactions,
                         );
                         final recentCard = _RecentTransactionsCard(
@@ -98,11 +100,11 @@ class DashboardScreen extends StatelessWidget {
   }
 
   void _openExpenseForm(BuildContext context, {Expense? existing}) {
-    Navigator.of(context).push(
-      MaterialPageRoute<bool>(
-        builder: (_) => ExpenseFormScreen(existing: existing),
-      ),
-    );
+    if (existing == null) {
+      context.push(AppRoutes.expenseNew);
+    } else {
+      context.push(AppRoutes.expenseEdit, extra: existing);
+    }
   }
 }
 
@@ -169,13 +171,7 @@ class _DashboardHeader extends StatelessWidget {
                 ),
                 const SizedBox(width: 4),
                 InkWell(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const ProfileScreen(),
-                      ),
-                    );
-                  },
+                  onTap: () => context.push(AppRoutes.profile),
                   borderRadius: BorderRadius.circular(20),
                   child: CircleAvatar(
                     radius: 19,

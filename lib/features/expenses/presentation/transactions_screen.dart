@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/money_formatter.dart';
 import '../data/expense_model.dart';
 import 'expense_cubit.dart';
-import 'expense_form_screen.dart';
 import 'widgets/expense_list_tile.dart';
 
 /// All expenses screen with search, category/month filters, and date grouping.
@@ -63,11 +64,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   void _openEdit(Expense expense) {
-    Navigator.of(context).push(
-      MaterialPageRoute<bool>(
-        builder: (_) => ExpenseFormScreen(existing: expense),
-      ),
-    );
+    context.push(AppRoutes.expenseEdit, extra: expense);
   }
 
   @override

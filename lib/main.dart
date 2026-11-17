@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'app.dart';
+import 'core/di/service_locator.dart';
 import 'core/services/preferences_service.dart';
 import 'firebase_options.dart';
 
@@ -21,10 +22,10 @@ Future<void> main() async {
     isFirebaseConfigured = false;
   }
 
-  runApp(
-    SpendlyApp(
-      isFirebaseConfigured: isFirebaseConfigured,
-      preferencesService: preferencesService,
-    ),
+  await setupServiceLocator(
+    isFirebaseConfigured: isFirebaseConfigured,
+    preferencesService: preferencesService,
   );
+
+  runApp(const SpendlyApp());
 }

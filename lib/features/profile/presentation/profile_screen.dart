@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -269,7 +270,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 16),
                         OutlinedButton.icon(
                           onPressed: () {
-                            Navigator.of(context).pop();
+                            context.pop();
                             context.read<AuthCubit>().signOut();
                           },
                           icon: const Icon(
