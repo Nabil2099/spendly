@@ -5,6 +5,7 @@ import 'package:spendly/features/ai_advisor/data/gemini_chat_service.dart';
 import 'package:spendly/features/expenses/data/expense_model.dart';
 import 'package:spendly/features/expenses/presentation/expense_cubit.dart';
 import 'package:spendly/features/expenses/presentation/expense_form_screen.dart';
+import 'package:spendly/features/expenses/presentation/widgets/expense_list_tile.dart';
 
 import 'expense_cubit_test.dart';
 
@@ -52,6 +53,24 @@ void main() {
     expect(draft.date, fallback);
   });
 
+  test('ParsedExpenseDraft.parseReceiptList parses multiple receipt items', () {
+    const json = '''
+{
+  "items": [
+    {"title": "Latte", "amount": 75, "category": "food", "date": "2026-11-17"},
+    {"title": "Croissant", "amount": 45.5, "category": "food", "date": "2026-11-17"}
+  ]
+}
+''';
+
+    final items = ParsedExpenseDraft.parseReceiptList(json);
+    expect(items.length, 2);
+    expect(items[0].title, 'Latte');
+    expect(items[0].amountMinor, 7500);
+    expect(items[1].title, 'Croissant');
+    expect(items[1].amountMinor, 4550);
+  });
+
   testWidgets('ExpenseFormScreen prefills fields from initialDraft', (
     tester,
   ) async {
@@ -87,6 +106,55 @@ void main() {
     expect(find.text('Carrefour'), findsOneWidget);
     expect(find.text('Weekly groceries'), findsOneWidget);
     expect(find.text('Save'), findsOneWidget);
+  });
+
+  testWidgets('ExpenseListTile expands and shrinks itemized receipt items', (
+    tester,
+  ) async {
+    final now = DateTime(2026, 11, 17, 12, 0);
+    final receipt = Expense(
+      id: 'rec_1',
+      title: 'Cafe Receipt',
+      amountMinor: 12050,
+      category: ExpenseCategory.food,
+      date: now,
+      items: const [
+        ExpenseItem(
+          title: 'Latte',
+          amountMinor: 7500,
+          category: ExpenseCategory.food,
+        ),
+        ExpenseItem(
+          title: 'Croissant',
+          amountMinor: 4550,
+          category: ExpenseCategory.food,
+        ),
+      ],
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ExpenseListTile(expense: receipt, onTap: () {}),
+        ),
+      ),
+    );
+
+    expect(find.text('Cafe Receipt'), findsOneWidget);
+    expect(find.text('Latte'), findsNothing);
+
+    await tester.tap(find.text('Cafe Receipt'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Latte'), findsOneWidget);
+    expect(find.text('Croissant'), findsOneWidget);
+
+    await tester.tap(find.text('Cafe Receipt'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Latte'), findsNothing);
   });
 }
 

@@ -47,17 +47,19 @@ class FakeGeminiChatService implements GeminiChatService {
   }
 
   @override
-  Future<ParsedExpenseDraft> parseExpenseFromReceipt(
+  Future<List<ParsedExpenseDraft>> parseExpenseFromReceipt(
     Uint8List imageBytes, {
     String mimeType = 'image/jpeg',
     DateTime? now,
   }) async {
-    return ParsedExpenseDraft(
-      title: 'Receipt',
-      amountMinor: 25000,
-      category: ExpenseCategory.shopping,
-      date: now ?? DateTime.now(),
-    );
+    return [
+      ParsedExpenseDraft(
+        title: 'Receipt',
+        amountMinor: 25000,
+        category: ExpenseCategory.shopping,
+        date: now ?? DateTime.now(),
+      ),
+    ];
   }
 }
 

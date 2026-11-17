@@ -61,7 +61,7 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
 
   Future<void> _scanReceipt() async {
     try {
-      final draft = await pickAndScanReceipt(
+      final drafts = await pickAndScanReceipt(
         context,
         onParsingStarted: () {
           if (mounted) setState(() => _isScanning = true);
@@ -69,8 +69,17 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
       );
       if (!mounted) return;
       setState(() => _isScanning = false);
-      if (draft == null) return;
+      if (drafts == null || drafts.isEmpty) return;
 
+      if (drafts.length > 1) {
+        final savedAll = await showReceiptItemsSheet(context, drafts);
+        if (savedAll == true && mounted) {
+          context.pop(true);
+        }
+        return;
+      }
+
+      final draft = drafts.first;
       if (draft.amountMinor != null) {
         _amountController.text = MoneyFormatter.formatEditable(
           draft.amountMinor!,
@@ -208,10 +217,10 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
                       enabled: !isSaving && !_isScanning,
                     ),
                     const SizedBox(height: 20),
-                    const Text(
+                    Text(
                       'Category',
                       style: TextStyle(
-                        color: AppColors.primaryText,
+                        color: context.textPrimary,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),
@@ -224,10 +233,10 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
                           : (cat) => setState(() => _selectedCategory = cat),
                     ),
                     const SizedBox(height: 20),
-                    const Text(
+                    Text(
                       'Title',
                       style: TextStyle(
-                        color: AppColors.primaryText,
+                        color: context.textPrimary,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),
@@ -261,10 +270,10 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    const Text(
+                    Text(
                       'Date',
                       style: TextStyle(
-                        color: AppColors.primaryText,
+                        color: context.textPrimary,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),
@@ -280,8 +289,8 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
                         ),
                         child: Text(
                           DateFormat.yMMMd().format(_selectedDate),
-                          style: const TextStyle(
-                            color: AppColors.primaryText,
+                          style: TextStyle(
+                            color: context.textPrimary,
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
                           ),
@@ -289,10 +298,10 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
+                    Text(
                       'Notes (optional)',
                       style: TextStyle(
-                        color: AppColors.primaryText,
+                        color: context.textPrimary,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),

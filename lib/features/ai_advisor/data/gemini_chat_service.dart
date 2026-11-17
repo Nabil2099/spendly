@@ -27,16 +27,53 @@ class ParsedExpenseDraft {
     String raw, {
     DateTime? fallbackDate,
   }) {
+    final decoded = _decodeJson(raw);
+    if (decoded is! Map<String, dynamic>) {
+      throw const FormatException('Expected JSON object');
+    }
+    return ParsedExpenseDraft.fromMap(decoded, fallbackDate: fallbackDate);
+  }
+
+  /// Parses a single JSON object, JSON array, or `{"items": [...]}` receipt response.
+  static List<ParsedExpenseDraft> parseReceiptList(
+    String raw, {
+    DateTime? fallbackDate,
+  }) {
+    final decoded = _decodeJson(raw);
+    if (decoded is List) {
+      return decoded
+          .whereType<Map<String, dynamic>>()
+          .map((m) => ParsedExpenseDraft.fromMap(m, fallbackDate: fallbackDate))
+          .toList();
+    }
+    if (decoded is Map<String, dynamic>) {
+      final rawItems = decoded['items'];
+      if (rawItems is List) {
+        return rawItems
+            .whereType<Map<String, dynamic>>()
+            .map(
+              (m) => ParsedExpenseDraft.fromMap(m, fallbackDate: fallbackDate),
+            )
+            .toList();
+      }
+      return [ParsedExpenseDraft.fromMap(decoded, fallbackDate: fallbackDate)];
+    }
+    throw const FormatException('Expected JSON object or items list');
+  }
+
+  static dynamic _decodeJson(String raw) {
     final cleaned = raw
         .trim()
         .replaceAll(RegExp(r'^```(?:json)?\s*', multiLine: true), '')
         .replaceAll(RegExp(r'```\s*$', multiLine: true), '')
         .trim();
+    return jsonDecode(cleaned);
+  }
 
-    final decoded = jsonDecode(cleaned);
-    if (decoded is! Map<String, dynamic>) {
-      throw const FormatException('Expected JSON object');
-    }
+  factory ParsedExpenseDraft.fromMap(
+    Map<String, dynamic> decoded, {
+    DateTime? fallbackDate,
+  }) {
 
     final title = (decoded['title'] as String? ?? '').trim();
     final rawAmount = decoded['amount'];
@@ -106,7 +143,7 @@ abstract class GeminiChatService {
     String input, {
     DateTime? now,
   });
-  Future<ParsedExpenseDraft> parseExpenseFromReceipt(
+  Future<List<ParsedExpenseDraft>> parseExpenseFromReceipt(
     Uint8List imageBytes, {
     String mimeType = 'image/jpeg',
     DateTime? now,
@@ -235,7 +272,7 @@ class HttpGeminiChatService implements GeminiChatService {
     final todayIso =
         '${reference.year}-${reference.month.toString().padLeft(2, '0')}-${reference.day.toString().padLeft(2, '0')}';
 
-    final raw = await _generateJson(
+    final text = await _generateJsonText(
       parts: [
         {
           'text':
@@ -251,13 +288,12 @@ Return ONLY a JSON object with:
 ''',
         },
       ],
-      fallbackDate: reference,
     );
-    return raw;
+    return ParsedExpenseDraft.fromJsonString(text, fallbackDate: reference);
   }
 
   @override
-  Future<ParsedExpenseDraft> parseExpenseFromReceipt(
+  Future<List<ParsedExpenseDraft>> parseExpenseFromReceipt(
     Uint8List imageBytes, {
     String mimeType = 'image/jpeg',
     DateTime? now,
@@ -266,7 +302,7 @@ Return ONLY a JSON object with:
     final todayIso =
         '${reference.year}-${reference.month.toString().padLeft(2, '0')}-${reference.day.toString().padLeft(2, '0')}';
 
-    return _generateJson(
+    final text = await _generateJsonText(
       parts: [
         {
           'inline_data': {
@@ -277,24 +313,36 @@ Return ONLY a JSON object with:
         {
           'text':
               '''
-Read this receipt image and extract the expense details.
+Read this receipt image and extract EVERY purchased line item (or a single item if only a total is shown).
 Today's date is $todayIso (use it if no date is visible on the receipt).
-Return ONLY a JSON object with:
-- "title": store/merchant name or short description (string)
-- "amount": final total paid as a positive number (number, or null if unreadable)
-- "category": one of ["food", "transport", "bills", "shopping", "health", "entertainment", "other"]
-- "date": ISO date "YYYY-MM-DD"
-- "note": optional short summary of items (string, empty if none)
+Return ONLY a JSON object with an "items" array:
+{
+  "items": [
+    {
+      "title": "item or merchant name (string)",
+      "amount": 0.00,
+      "category": "one of [food, transport, bills, shopping, health, entertainment, other]",
+      "date": "YYYY-MM-DD",
+      "note": "merchant name or optional detail (string)"
+    }
+  ]
+}
 ''',
         },
       ],
+    );
+    final items = ParsedExpenseDraft.parseReceiptList(
+      text,
       fallbackDate: reference,
     );
+    if (items.isEmpty) {
+      throw const GeminiFailure('No items could be read from this receipt.');
+    }
+    return items;
   }
 
-  Future<ParsedExpenseDraft> _generateJson({
+  Future<String> _generateJsonText({
     required List<Map<String, dynamic>> parts,
-    required DateTime fallbackDate,
   }) async {
     if (!isConfigured) {
       throw const GeminiFailure(
@@ -333,7 +381,7 @@ Return ONLY a JSON object with:
         throw const GeminiFailure('Could not extract expense details.');
       }
 
-      return ParsedExpenseDraft.fromJsonString(text, fallbackDate: fallbackDate);
+      return text;
     } on GeminiFailure {
       rethrow;
     } on FormatException {

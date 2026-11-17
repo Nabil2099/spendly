@@ -358,6 +358,7 @@ class ExpenseCubit extends Cubit<ExpenseState> {
     required ExpenseCategory category,
     required DateTime date,
     String note = '',
+    List<ExpenseItem> items = const [],
   }) async {
     final uid = _uid;
     if (uid == null) return false;
@@ -373,6 +374,7 @@ class ExpenseCubit extends Cubit<ExpenseState> {
           category: category,
           date: date,
           note: note.trim(),
+          items: items,
           createdAt: now,
           updatedAt: now,
         );
@@ -384,6 +386,7 @@ class ExpenseCubit extends Cubit<ExpenseState> {
           category: category,
           date: date,
           note: note.trim(),
+          items: items.isNotEmpty ? items : existing.items,
           updatedAt: now,
         );
         await _expenseRepository.updateExpense(uid, updated);

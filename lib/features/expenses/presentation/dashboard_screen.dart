@@ -539,7 +539,7 @@ class _AiQuickAddBarState extends State<_AiQuickAddBar> {
   Future<void> _scanReceipt() async {
     if (_isBusy) return;
     try {
-      final draft = await pickAndScanReceipt(
+      final drafts = await pickAndScanReceipt(
         context,
         onParsingStarted: () {
           if (mounted) setState(() => _isBusy = true);
@@ -547,8 +547,13 @@ class _AiQuickAddBarState extends State<_AiQuickAddBar> {
       );
       if (!mounted) return;
       setState(() => _isBusy = false);
-      if (draft == null) return;
-      context.push(AppRoutes.expenseNew, extra: draft);
+      if (drafts == null || drafts.isEmpty) return;
+
+      if (drafts.length == 1) {
+        context.push(AppRoutes.expenseNew, extra: drafts.first);
+      } else {
+        await showReceiptItemsSheet(context, drafts);
+      }
     } on GeminiFailure catch (e) {
       if (!mounted) return;
       setState(() => _isBusy = false);

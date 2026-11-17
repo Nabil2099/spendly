@@ -113,6 +113,19 @@ ThemeData buildSpendlyTheme() {
       backgroundColor: AppColors.cardSurface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     ),
+    bottomSheetTheme: const BottomSheetThemeData(
+      backgroundColor: AppColors.cardSurface,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+    ),
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: AppColors.primaryText,
+      contentTextStyle: const TextStyle(color: Colors.white),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    ),
   );
 }
 
@@ -229,6 +242,19 @@ ThemeData buildSpendlyDarkTheme() {
     dialogTheme: DialogThemeData(
       backgroundColor: AppColors.darkSurface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    ),
+    bottomSheetTheme: const BottomSheetThemeData(
+      backgroundColor: AppColors.darkSurface,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+    ),
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: AppColors.darkInputFill,
+      contentTextStyle: const TextStyle(color: AppColors.darkPrimaryText),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     ),
   );
 }

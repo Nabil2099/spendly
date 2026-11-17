@@ -75,6 +75,35 @@ enum ExpenseCategory {
   }
 }
 
+/// Individual line item inside an itemized receipt [Expense].
+class ExpenseItem {
+  const ExpenseItem({
+    required this.title,
+    required this.amountMinor,
+    this.category = ExpenseCategory.other,
+  });
+
+  final String title;
+  final int amountMinor;
+  final ExpenseCategory category;
+
+  Map<String, dynamic> toMap() {
+    return {
+      'title': title,
+      'amountMinor': amountMinor,
+      'category': category.id,
+    };
+  }
+
+  factory ExpenseItem.fromMap(Map<String, dynamic> map) {
+    return ExpenseItem(
+      title: (map['title'] as String?) ?? '',
+      amountMinor: (map['amountMinor'] as num?)?.toInt() ?? 0,
+      category: ExpenseCategory.fromId(map['category'] as String?),
+    );
+  }
+}
+
 /// Expense record stored in `users/{uid}/expenses/{expenseId}`.
 class Expense {
   const Expense({
@@ -85,6 +114,7 @@ class Expense {
     required this.category,
     required this.date,
     this.note = '',
+    this.items = const [],
     required this.createdAt,
     required this.updatedAt,
   });
@@ -96,6 +126,7 @@ class Expense {
   final ExpenseCategory category;
   final DateTime date;
   final String note;
+  final List<ExpenseItem> items;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -107,6 +138,7 @@ class Expense {
     ExpenseCategory? category,
     DateTime? date,
     String? note,
+    List<ExpenseItem>? items,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -118,6 +150,7 @@ class Expense {
       category: category ?? this.category,
       date: date ?? this.date,
       note: note ?? this.note,
+      items: items ?? this.items,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -131,12 +164,21 @@ class Expense {
       'category': category.id,
       'date': Timestamp.fromDate(date),
       'note': note,
+      if (items.isNotEmpty) 'items': items.map((e) => e.toMap()).toList(),
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
   }
 
   factory Expense.fromMap(String id, Map<String, dynamic> map) {
+    final rawItems = map['items'];
+    final items = rawItems is List
+        ? rawItems
+              .whereType<Map<String, dynamic>>()
+              .map(ExpenseItem.fromMap)
+              .toList()
+        : const <ExpenseItem>[];
+
     return Expense(
       id: id,
       title: (map['title'] as String?) ?? '',
@@ -145,6 +187,7 @@ class Expense {
       category: ExpenseCategory.fromId(map['category'] as String?),
       date: _readDate(map['date']),
       note: (map['note'] as String?) ?? '',
+      items: items,
       createdAt: _readDate(map['createdAt']),
       updatedAt: _readDate(map['updatedAt']),
     );

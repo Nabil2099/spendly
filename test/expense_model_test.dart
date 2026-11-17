@@ -38,4 +38,38 @@ void main() {
     expect(ExpenseCategory.fromId('unknown_cat'), ExpenseCategory.other);
     expect(ExpenseCategory.fromId(null), ExpenseCategory.other);
   });
+
+  test('Expense serializes and restores itemized receipt items', () {
+    final now = DateTime(2026, 11, 17, 15, 0);
+    final receipt = Expense(
+      id: 'rec_1',
+      title: 'Carrefour',
+      amountMinor: 12050,
+      category: ExpenseCategory.food,
+      date: now,
+      items: const [
+        ExpenseItem(
+          title: 'Latte',
+          amountMinor: 7500,
+          category: ExpenseCategory.food,
+        ),
+        ExpenseItem(
+          title: 'Croissant',
+          amountMinor: 4550,
+          category: ExpenseCategory.food,
+        ),
+      ],
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    final map = receipt.toFirestore();
+    final restored = Expense.fromMap('rec_1', map);
+
+    expect(restored.items.length, 2);
+    expect(restored.items[0].title, 'Latte');
+    expect(restored.items[0].amountMinor, 7500);
+    expect(restored.items[1].title, 'Croissant');
+    expect(restored.items[1].amountMinor, 4550);
+  });
 }
