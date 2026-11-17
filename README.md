@@ -39,7 +39,24 @@ This repository does not include Firebase credentials. To connect your own Fireb
    firebase deploy --only firestore:rules
    ```
 
-### 3. Run & Verify
+### 3. Configure Gemini AI Advisor (Optional)
+
+1. Copy `.env.example` to `.env`:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Add your Gemini API key in `.env`:
+
+   ```env
+   GEMINI_API_KEY=your_gemini_api_key_here
+   GEMINI_MODEL=gemini-3.5-flash-lite
+   ```
+
+   `.env` is gitignored so your API key is never committed.
+
+### 4. Run & Verify
 
 ```bash
 flutter run

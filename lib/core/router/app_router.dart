@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/ai_advisor/presentation/ai_advisor_screen.dart';
 import '../../features/auth/presentation/auth_cubit.dart';
 import '../../features/auth/presentation/auth_view.dart';
 import '../../features/expenses/data/expense_model.dart';
@@ -23,6 +24,7 @@ abstract final class AppRoutes {
   static const String expenseNew = '/expense/new';
   static const String expenseEdit = '/expense/edit';
   static const String profile = '/profile';
+  static const String assistant = '/assistant';
 }
 
 /// Bridges [AuthCubit], splash, and onboarding state into [GoRouter] redirects.
@@ -101,23 +103,35 @@ GoRouter createAppRouter({
     routes: [
       GoRoute(
         path: AppRoutes.splash,
-        builder: (context, state) =>
-            SplashScreen(onFinished: notifier.finishSplash),
+        pageBuilder: (context, state) => _fadeSlidePage(
+          state: state,
+          child: SplashScreen(onFinished: notifier.finishSplash),
+        ),
       ),
       GoRoute(
         path: AppRoutes.onboarding,
-        builder: (context, state) => OnboardingScreen(
-          onComplete: () {
-            onOnboardingComplete();
-            notifier.completeOnboarding();
-          },
+        pageBuilder: (context, state) => _fadeSlidePage(
+          state: state,
+          child: OnboardingScreen(
+            onComplete: () {
+              onOnboardingComplete();
+              notifier.completeOnboarding();
+            },
+          ),
         ),
       ),
       GoRoute(
         path: AppRoutes.auth,
-        builder: (context, state) => const AuthView(),
+        pageBuilder: (context, state) =>
+            _fadeSlidePage(state: state, child: const AuthView()),
       ),
-      StatefulShellRoute.indexedStack(
+      StatefulShellRoute(
+        navigatorContainerBuilder: (context, navigationShell, children) {
+          return _AnimatedShellContainer(
+            currentIndex: navigationShell.currentIndex,
+            children: children,
+          );
+        },
         builder: (context, state, navigationShell) {
           return MainShell(navigationShell: navigationShell);
         },
@@ -140,6 +154,14 @@ GoRouter createAppRouter({
               ),
             ],
           ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.assistant,
+                builder: (context, state) => const AiAdvisorScreen(),
+              ),
+            ],
+          ),
         ],
       ),
       GoRoute(
@@ -156,9 +178,74 @@ GoRouter createAppRouter({
       ),
       GoRoute(
         path: AppRoutes.profile,
-        builder: (context, state) => const ProfileScreen(),
+        pageBuilder: (context, state) =>
+            _fadeSlidePage(state: state, child: const ProfileScreen()),
       ),
     ],
+  );
+}
+
+class _AnimatedShellContainer extends StatelessWidget {
+  const _AnimatedShellContainer({
+    required this.currentIndex,
+    required this.children,
+  });
+
+  final int currentIndex;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final isAi = currentIndex == 2;
+    return AnimatedSwitcher(
+      duration: Duration(milliseconds: isAi ? 320 : 220),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, animation) {
+        final offsetTween = isAi
+            ? Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero)
+            : Tween<Offset>(begin: const Offset(0.02, 0), end: Offset.zero);
+        return FadeTransition(
+          opacity: animation,
+          child: SlideTransition(
+            position: offsetTween.animate(animation),
+            child: child,
+          ),
+        );
+      },
+      child: KeyedSubtree(
+        key: ValueKey<int>(currentIndex),
+        child: children[currentIndex],
+      ),
+    );
+  }
+}
+
+CustomTransitionPage<void> _fadeSlidePage({
+  required GoRouterState state,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    transitionDuration: const Duration(milliseconds: 280),
+    reverseTransitionDuration: const Duration(milliseconds: 220),
+    child: child,
+    transitionsBuilder: (_, animation, _, child) {
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+      );
+      return FadeTransition(
+        opacity: curved,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0.04, 0),
+            end: Offset.zero,
+          ).animate(curved),
+          child: child,
+        ),
+      );
+    },
   );
 }
 

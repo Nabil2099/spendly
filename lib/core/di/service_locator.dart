@@ -1,5 +1,7 @@
 import 'package:get_it/get_it.dart';
 
+import '../../features/ai_advisor/data/gemini_chat_service.dart';
+import '../../features/ai_advisor/presentation/ai_chat_cubit.dart';
 import '../../features/auth/data/auth_repository.dart';
 import '../../features/auth/presentation/auth_cubit.dart';
 import '../../features/budget/data/budget_repository.dart';
@@ -23,6 +25,7 @@ Future<void> setupServiceLocator({
   BudgetRepository? budgetRepository,
   ProfileRepository? profileRepository,
   ExchangeRateService? exchangeRateService,
+  GeminiChatService? geminiChatService,
 }) async {
   await getIt.reset();
 
@@ -32,6 +35,10 @@ Future<void> setupServiceLocator({
 
   getIt.registerLazySingleton<ExchangeRateService>(
     () => exchangeRateService ?? ExchangeRateService(),
+  );
+
+  getIt.registerLazySingleton<GeminiChatService>(
+    () => geminiChatService ?? HttpGeminiChatService(),
   );
 
   if (authRepository != null) {
@@ -94,6 +101,10 @@ Future<void> setupServiceLocator({
 
   getIt.registerFactory<ProfileCubit>(
     () => ProfileCubit(repository: getIt<ProfileRepository>()),
+  );
+
+  getIt.registerFactory<AiChatCubit>(
+    () => AiChatCubit(service: getIt<GeminiChatService>()),
   );
 }
 

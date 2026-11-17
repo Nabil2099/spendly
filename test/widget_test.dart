@@ -71,10 +71,15 @@ void main() {
     expect(find.text('Spendly'), findsOneWidget);
     expect(find.text('Total Spending'), findsOneWidget);
 
-    await tester.tap(find.text('Transactions'));
+    await tester.tap(find.text('History'));
     await tester.pumpAndSettle();
 
     expect(find.text('Search transactions...'), findsOneWidget);
+
+    await tester.tap(find.text('AI'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Spendly AI Advisor'), findsOneWidget);
   });
 
   testWidgets(

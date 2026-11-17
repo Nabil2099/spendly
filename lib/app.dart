@@ -7,6 +7,7 @@ import 'core/router/app_router.dart';
 import 'core/services/preferences_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_cubit.dart';
+import 'features/ai_advisor/presentation/ai_chat_cubit.dart';
 import 'features/auth/presentation/auth_cubit.dart';
 import 'features/expenses/presentation/expense_cubit.dart';
 import 'features/profile/presentation/profile_cubit.dart';
@@ -26,6 +27,7 @@ class _SpendlyAppState extends State<SpendlyApp> {
   late final AuthCubit _authCubit;
   late final ExpenseCubit _expenseCubit;
   late final ProfileCubit _profileCubit;
+  late final AiChatCubit _aiChatCubit;
   late final AppRouterNotifier _routerNotifier;
   late final GoRouter _router;
 
@@ -36,6 +38,7 @@ class _SpendlyAppState extends State<SpendlyApp> {
     _authCubit = getIt<AuthCubit>();
     _expenseCubit = getIt<ExpenseCubit>();
     _profileCubit = getIt<ProfileCubit>();
+    _aiChatCubit = getIt<AiChatCubit>();
 
     final initialUid = _authCubit.state.user?.uid;
     if (initialUid != null) {
@@ -68,6 +71,7 @@ class _SpendlyAppState extends State<SpendlyApp> {
     _authCubit.close();
     _expenseCubit.close();
     _profileCubit.close();
+    _aiChatCubit.close();
     super.dispose();
   }
 
@@ -79,6 +83,7 @@ class _SpendlyAppState extends State<SpendlyApp> {
         BlocProvider.value(value: _authCubit),
         BlocProvider.value(value: _expenseCubit),
         BlocProvider.value(value: _profileCubit),
+        BlocProvider.value(value: _aiChatCubit),
       ],
       child: BlocListener<AuthCubit, AuthState>(
         listenWhen: (prev, curr) => prev.user?.uid != curr.user?.uid,
