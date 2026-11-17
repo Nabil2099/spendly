@@ -6,9 +6,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../core/l10n/locale_cubit.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/theme_cubit.dart';
+import '../../../core/l10n/l10n.dart';
 import '../../auth/presentation/auth_cubit.dart';
 import 'profile_cubit.dart';
 
@@ -101,9 +103,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           cubit.state == ThemeMode.dark ||
           (cubit.state == ThemeMode.system && context.isDarkMode),
     );
+    final currentLocale = context.select((LocaleCubit cubit) => cubit.state);
+    final l10n = context.l10n;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile'), centerTitle: true),
+      appBar: AppBar(title: Text(l10n.profile), centerTitle: true),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -184,8 +188,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   child: const Text('Remove photo'),
                                 ),
                               ],
-                              if (userEmail.isNotEmpty) ...[
-                                const SizedBox(height: 6),
+                              const SizedBox(height: 10),
+                              ValueListenableBuilder<TextEditingValue>(
+                                valueListenable: _nameController,
+                                builder: (context, nameValue, _) {
+                                  final displayName = nameValue.text.trim();
+                                  if (displayName.isEmpty) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 2),
+                                    child: Text(
+                                      displayName,
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: context.textPrimary,
+                                        fontSize: 19,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              if (userEmail.isNotEmpty)
                                 Text(
                                   userEmail,
                                   style: TextStyle(
@@ -193,7 +218,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     fontSize: 13,
                                   ),
                                 ),
-                              ],
                             ],
                           ),
                         ),
@@ -208,10 +232,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   controller: _nameController,
                                   enabled: !state.isSaving,
                                   textCapitalization: TextCapitalization.words,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Name',
+                                  decoration: InputDecoration(
+                                    labelText: l10n.name,
                                     hintText: 'Your display name',
-                                    prefixIcon: Icon(Icons.badge_outlined),
+                                    prefixIcon: const Icon(
+                                      Icons.badge_outlined,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(height: 14),
@@ -221,10 +247,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   maxLines: 3,
                                   textCapitalization:
                                       TextCapitalization.sentences,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Bio',
+                                  decoration: InputDecoration(
+                                    labelText: l10n.bio,
                                     hintText: 'A short note about yourself...',
-                                    prefixIcon: Icon(Icons.notes_rounded),
+                                    prefixIcon: const Icon(Icons.notes_rounded),
                                   ),
                                 ),
                                 const SizedBox(height: 18),
@@ -239,7 +265,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                             color: Colors.white,
                                           ),
                                         )
-                                      : const Text('Save Profile'),
+                                      : Text(l10n.saveProfile),
                                 ),
                               ],
                             ),
@@ -247,24 +273,79 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const SizedBox(height: 16),
                         Card(
-                          child: SwitchListTile(
-                            title: const Text(
-                              'Dark Mode',
-                              style: TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                            subtitle: const Text(
-                              'Switch between light and dark appearance',
-                            ),
-                            secondary: Icon(
-                              isDark
-                                  ? Icons.dark_mode_rounded
-                                  : Icons.light_mode_rounded,
-                              color: AppColors.primaryGreen,
-                            ),
-                            value: isDark,
-                            onChanged: (value) {
-                              context.read<ThemeCubit>().toggleDarkMode(value);
-                            },
+                          child: Column(
+                            children: [
+                              SwitchListTile(
+                                title: Text(
+                                  l10n.darkMode,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                subtitle: Text(l10n.darkModeSubtitle),
+                                secondary: Icon(
+                                  isDark
+                                      ? Icons.dark_mode_rounded
+                                      : Icons.light_mode_rounded,
+                                  color: AppColors.primaryGreen,
+                                ),
+                                value: isDark,
+                                onChanged: (value) {
+                                  context.read<ThemeCubit>().toggleDarkMode(
+                                    value,
+                                  );
+                                },
+                              ),
+                              Divider(height: 1, color: context.borderColor),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.translate_rounded,
+                                      color: AppColors.slateBlue,
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Text(
+                                        l10n.language,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                    ),
+                                    SegmentedButton<String>(
+                                      segments: [
+                                        ButtonSegment(
+                                          value: 'en',
+                                          label: Text(l10n.english),
+                                        ),
+                                        ButtonSegment(
+                                          value: 'ar',
+                                          label: Text(l10n.arabic),
+                                        ),
+                                      ],
+                                      selected: {currentLocale.languageCode},
+                                      showSelectedIcon: false,
+                                      style: const ButtonStyle(
+                                        visualDensity: VisualDensity.compact,
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      onSelectionChanged: (val) {
+                                        context.read<LocaleCubit>().setLocale(
+                                          Locale(val.first),
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -277,9 +358,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Icons.logout_rounded,
                             color: AppColors.danger,
                           ),
-                          label: const Text(
-                            'Log out',
-                            style: TextStyle(color: AppColors.danger),
+                          label: Text(
+                            l10n.logOut,
+                            style: const TextStyle(color: AppColors.danger),
                           ),
                         ),
                       ],

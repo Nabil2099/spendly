@@ -12,6 +12,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/theme_cubit.dart';
 import '../../../core/utils/money_formatter.dart';
+import '../../../core/l10n/l10n.dart';
 import '../../ai_advisor/data/gemini_chat_service.dart';
 import '../../profile/presentation/profile_cubit.dart';
 import '../data/expense_model.dart';
@@ -20,7 +21,6 @@ import 'widgets/budget_dialog.dart';
 import 'widgets/expense_list_tile.dart';
 import 'widgets/month_picker_row.dart';
 import 'widgets/receipt_scanner_helper.dart';
-import 'widgets/spending_category_chart.dart';
 
 /// Main Dashboard screen showing monthly total, budget ring, category chart, and recent expenses.
 class DashboardScreen extends StatelessWidget {
@@ -59,41 +59,11 @@ class DashboardScreen extends StatelessWidget {
                 else
                   _FadeSlideIn(
                     delayMs: 120,
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final isTablet = constraints.maxWidth >= 680;
-                        final chartCard = SpendingCategoryChart(
-                          expenses: state.monthlyExpenses,
-                          categoryTotalsMinor: state.categoryTotalsMinor,
-                          totalMinor: state.monthlyTotalMinor,
-                          selectedMonth: state.selectedMonth,
-                          onSeeAll: onOpenTransactions,
-                        );
-                        final recentCard = _RecentTransactionsCard(
-                          expenses: state.recentExpenses,
-                          onSeeAll: onOpenTransactions,
-                          onTapExpense: (expense) =>
-                              _openExpenseForm(context, existing: expense),
-                        );
-
-                        if (isTablet) {
-                          return Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(child: chartCard),
-                              const SizedBox(width: 16),
-                              Expanded(child: recentCard),
-                            ],
-                          );
-                        }
-                        return Column(
-                          children: [
-                            chartCard,
-                            const SizedBox(height: 16),
-                            recentCard,
-                          ],
-                        );
-                      },
+                    child: _RecentTransactionsCard(
+                      expenses: state.recentExpenses,
+                      onSeeAll: onOpenTransactions,
+                      onTapExpense: (expense) =>
+                          _openExpenseForm(context, existing: expense),
                     ),
                   ),
               ],
@@ -267,9 +237,9 @@ class _SummaryCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Total Spending',
-                      style: TextStyle(
+                    Text(
+                      context.l10n.totalSpending,
+                      style: const TextStyle(
                         color: Color(0xFFD6EAE3),
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
@@ -345,17 +315,17 @@ class _SummaryCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(
+                        Row(
                           children: [
                             Text(
-                              'Budget',
-                              style: TextStyle(
+                              context.l10n.budget,
+                              style: const TextStyle(
                                 color: Color(0xFFD6EAE3),
                                 fontSize: 12,
                               ),
                             ),
-                            SizedBox(width: 4),
-                            Icon(
+                            const SizedBox(width: 4),
+                            const Icon(
                               Icons.edit_outlined,
                               size: 13,
                               color: Color(0xFFD6EAE3),
@@ -524,9 +494,8 @@ class _AiQuickAddBarState extends State<_AiQuickAddBar> {
     } on GeminiFailure catch (e) {
       if (!mounted) return;
       setState(() => _isBusy = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
     } catch (_) {
       if (!mounted) return;
       setState(() => _isBusy = false);
@@ -557,9 +526,8 @@ class _AiQuickAddBarState extends State<_AiQuickAddBar> {
     } on GeminiFailure catch (e) {
       if (!mounted) return;
       setState(() => _isBusy = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
     } catch (_) {
       if (!mounted) return;
       setState(() => _isBusy = false);
@@ -582,13 +550,13 @@ class _AiQuickAddBarState extends State<_AiQuickAddBar> {
                 enabled: !_isBusy,
                 textInputAction: TextInputAction.send,
                 onSubmitted: (_) => _parseText(),
-                decoration: const InputDecoration(
-                  hintText: 'Quick add: "Coffee 65 yesterday"',
+                decoration: InputDecoration(
+                  hintText: context.l10n.quickAddHint,
                   filled: false,
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 6),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 6),
                   isDense: true,
                 ),
               ),
@@ -653,7 +621,7 @@ class _RecentTransactionsCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Recent Transactions',
+                    context.l10n.recentTransactions,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleMedium,
@@ -667,21 +635,21 @@ class _RecentTransactionsCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     minimumSize: const Size(0, 32),
                   ),
-                  child: const Text(
-                    'See All',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                  child: Text(
+                    context.l10n.seeAll,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 6),
             if (expenses.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Center(
                   child: Text(
-                    'No expenses recorded for this month.',
-                    style: TextStyle(color: AppColors.secondaryText),
+                    context.l10n.noExpensesMonth,
+                    style: const TextStyle(color: AppColors.secondaryText),
                   ),
                 ),
               )

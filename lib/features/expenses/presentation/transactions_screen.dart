@@ -7,6 +7,7 @@ import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/money_formatter.dart';
+import '../../../core/l10n/l10n.dart';
 import '../data/expense_model.dart';
 import 'expense_cubit.dart';
 import 'widgets/expense_list_tile.dart';
@@ -85,7 +86,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Transactions',
+                    context.l10n.transactions,
                     style: Theme.of(context).textTheme.headlineMedium,
                   ),
                   const SizedBox(height: 12),
@@ -93,7 +94,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     controller: _searchController,
                     onChanged: cubit.setSearchQuery,
                     decoration: InputDecoration(
-                      hintText: 'Search transactions...',
+                      hintText: context.l10n.searchTransactions,
                       prefixIcon: const Icon(Icons.search_rounded),
                       suffixIcon: state.searchQuery.isNotEmpty
                           ? IconButton(
@@ -113,7 +114,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       scrollDirection: Axis.horizontal,
                       children: [
                         _FilterChip(
-                          label: 'All',
+                          label: context.l10n.all,
                           selected: state.categoryFilter == null,
                           onTap: () => cubit.setCategoryFilter(null),
                         ),
@@ -121,7 +122,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         _FilterChip(
                           label: state.filterBySelectedMonth
                               ? monthChipLabel
-                              : 'All Months',
+                              : context.l10n.allMonths,
                           selected: state.filterBySelectedMonth,
                           onTap: () => cubit.setFilterBySelectedMonth(
                             !state.filterBySelectedMonth,
@@ -131,7 +132,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           (cat) => Padding(
                             padding: const EdgeInsets.only(left: 8),
                             child: _FilterChip(
-                              label: cat.label,
+                              label: cat.localizedLabel(context.l10n),
                               icon: cat.icon,
                               selected: state.categoryFilter == cat,
                               onTap: () => cubit.setCategoryFilter(

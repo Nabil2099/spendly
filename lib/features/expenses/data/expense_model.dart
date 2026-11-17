@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 /// Allowed expense categories from `Agentic/PROJECT_SCOPE.md`.
 enum ExpenseCategory {
   food(
@@ -72,6 +74,25 @@ enum ExpenseCategory {
       (cat) => cat.id == id,
       orElse: () => ExpenseCategory.other,
     );
+  }
+
+  String localizedLabel(AppLocalizations l10n) {
+    switch (this) {
+      case ExpenseCategory.food:
+        return l10n.catFood;
+      case ExpenseCategory.transport:
+        return l10n.catTransport;
+      case ExpenseCategory.bills:
+        return l10n.catBills;
+      case ExpenseCategory.shopping:
+        return l10n.catShopping;
+      case ExpenseCategory.health:
+        return l10n.catHealth;
+      case ExpenseCategory.entertainment:
+        return l10n.catEntertainment;
+      case ExpenseCategory.other:
+        return l10n.catOther;
+    }
   }
 }
 

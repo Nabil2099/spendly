@@ -11,6 +11,7 @@ import 'package:spendly/features/auth/presentation/auth_view.dart';
 import 'package:spendly/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:spendly/features/onboarding/presentation/splash_screen.dart';
 import 'package:spendly/features/profile/data/profile_repository.dart';
+import 'package:spendly/l10n/app_localizations.dart';
 
 import 'expense_cubit_test.dart';
 
@@ -84,15 +85,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Analytics'), findsOneWidget);
-    expect(find.text('6-Month Comparison'), findsOneWidget);
-    expect(find.text('Category Breakdown'), findsOneWidget);
+    expect(find.text('Overview'), findsOneWidget);
+    expect(find.text('AI Spending Brief'), findsOneWidget);
     expect(find.text('Stats'), findsOneWidget);
     expect(find.text('History'), findsNothing);
+
+    await tester.tap(find.text('Categories'));
+    await tester.pumpAndSettle();
+    expect(find.text('Category Breakdown'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
     await tester.pumpAndSettle();
 
-    expect(find.text('Spendly AI Advisor'), findsOneWidget);
+    expect(find.text('Spendi AI'), findsOneWidget);
     expect(find.text('Stats'), findsNothing);
   });
 
@@ -101,6 +106,8 @@ void main() {
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: BlocProvider(
             create: (_) => AuthCubit(
               repository: FakeAuthRepository(null),
@@ -143,6 +150,8 @@ void main() {
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: BlocProvider(
             create: (_) => AuthCubit(
               repository: FakeAuthRepository(null),

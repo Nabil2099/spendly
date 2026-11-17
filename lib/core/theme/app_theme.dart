@@ -174,6 +174,10 @@ ThemeData buildSpendlyDarkTheme() {
       filled: true,
       fillColor: AppColors.darkInputFill,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      labelStyle: const TextStyle(
+        color: AppColors.darkSecondaryText,
+        fontSize: 14,
+      ),
       hintStyle: const TextStyle(
         color: AppColors.darkSecondaryText,
         fontSize: 15,

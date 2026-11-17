@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/l10n/l10n.dart';
 
 /// Main shell (Home, History, Stats & AI) with a centered `+` floating nav bar.
 class MainShell extends StatelessWidget {
@@ -15,6 +16,7 @@ class MainShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final selectedIndex = navigationShell.currentIndex;
     final hideNavBar = selectedIndex == 3;
+    final l10n = context.l10n;
 
     return Scaffold(
       body: Stack(
@@ -75,14 +77,14 @@ class MainShell extends StatelessWidget {
                                 _FloatingNavItem(
                                   icon: Icons.home_outlined,
                                   activeIcon: Icons.home_rounded,
-                                  label: 'Home',
+                                  label: l10n.navHome,
                                   selected: selectedIndex == 0,
                                   onTap: () => navigationShell.goBranch(0),
                                 ),
                                 _FloatingNavItem(
                                   icon: Icons.receipt_long_outlined,
                                   activeIcon: Icons.receipt_long_rounded,
-                                  label: 'History',
+                                  label: l10n.navHistory,
                                   selected: selectedIndex == 1,
                                   onTap: () => navigationShell.goBranch(1),
                                 ),
@@ -115,14 +117,14 @@ class MainShell extends StatelessWidget {
                                 _FloatingNavItem(
                                   icon: Icons.insights_outlined,
                                   activeIcon: Icons.insights_rounded,
-                                  label: 'Stats',
+                                  label: l10n.navStats,
                                   selected: selectedIndex == 2,
                                   onTap: () => navigationShell.goBranch(2),
                                 ),
                                 _FloatingNavItem(
                                   icon: Icons.auto_awesome_outlined,
                                   activeIcon: Icons.auto_awesome_rounded,
-                                  label: 'AI',
+                                  label: l10n.navAi,
                                   selected: selectedIndex == 3,
                                   onTap: () => navigationShell.goBranch(3),
                                 ),

@@ -74,7 +74,6 @@ class ParsedExpenseDraft {
     Map<String, dynamic> decoded, {
     DateTime? fallbackDate,
   }) {
-
     final title = (decoded['title'] as String? ?? '').trim();
     final rawAmount = decoded['amount'];
     final amountText = rawAmount is num

@@ -5,9 +5,11 @@ import 'package:go_router/go_router.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/l10n/l10n.dart';
 import '../../expenses/presentation/expense_cubit.dart';
 import '../data/gemini_chat_service.dart';
 import 'ai_chat_cubit.dart';
+import 'widgets/spendi_avatar.dart';
 
 /// AI financial advisor chat screen powered by Gemini (`gemini-3.5-flash-lite`).
 class AiAdvisorScreen extends StatefulWidget {
@@ -40,7 +42,12 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
     if (preset == null) _controller.clear();
 
     final expenseState = context.read<ExpenseCubit>().state;
-    context.read<AiChatCubit>().sendMessage(text, expenseState: expenseState);
+    final lang = Localizations.localeOf(context).languageCode;
+    context.read<AiChatCubit>().sendMessage(
+      text,
+      expenseState: expenseState,
+      languageCode: lang,
+    );
     _scrollToBottom();
   }
 
@@ -65,16 +72,12 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
           onPressed: () => context.go(AppRoutes.dashboard),
           icon: const Icon(Icons.arrow_back_rounded),
         ),
-        title: const Row(
+        title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.auto_awesome_rounded,
-              color: AppColors.slateBlue,
-              size: 20,
-            ),
-            SizedBox(width: 8),
-            Text('Spendly AI Advisor'),
+            const SpendiAvatar(pose: SpendiPose.greeting, size: 30),
+            const SizedBox(width: 8),
+            Text(context.l10n.spendiAi),
           ],
         ),
         actions: [
@@ -156,9 +159,13 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
                                 if (index == state.messages.length) {
                                   return const _TypingBubble();
                                 }
-                                return _MessageBubble(
-                                  message: state.messages[index],
-                                );
+                                final msg = state.messages[index];
+                                final pose = index % 4 == 1
+                                    ? SpendiPose.advising
+                                    : (index % 4 == 3
+                                          ? SpendiPose.happy
+                                          : SpendiPose.greeting);
+                                return _MessageBubble(message: msg, pose: pose);
                               },
                             ),
                     ),
@@ -178,8 +185,8 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
                               enabled: !state.isSending,
                               textInputAction: TextInputAction.send,
                               onSubmitted: (_) => _send(),
-                              decoration: const InputDecoration(
-                                hintText: 'Ask for budgeting advice...',
+                              decoration: InputDecoration(
+                                hintText: context.l10n.askBudgetingAdvice,
                               ),
                             ),
                           ),
@@ -220,21 +227,12 @@ class _EmptyChatView extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 24),
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: AppColors.slateBlue.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Icon(
-              Icons.auto_awesome_rounded,
-              color: AppColors.slateBlue,
-              size: 32,
-            ),
-          ),
+          const SpendiAvatar(pose: SpendiPose.greeting, size: 88),
           const SizedBox(height: 16),
-          Text('Ask Spendly AI', style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            context.l10n.askSpendiAi,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 6),
           Text(
             'Get personalized EGP budgeting tips based on your monthly expenses ($modelName).',
@@ -262,48 +260,78 @@ class _EmptyChatView extends StatelessWidget {
 }
 
 class _MessageBubble extends StatelessWidget {
-  const _MessageBubble({required this.message});
+  const _MessageBubble({
+    required this.message,
+    this.pose = SpendiPose.advising,
+  });
 
   final ChatMessage message;
+  final SpendiPose pose;
 
   @override
   Widget build(BuildContext context) {
     final isUser = message.isUser;
-    return Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 480),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-          decoration: BoxDecoration(
-            color: isUser ? AppColors.primaryGreen : context.cardBg,
-            borderRadius: BorderRadius.only(
-              topLeft: const Radius.circular(18),
-              topRight: const Radius.circular(18),
-              bottomLeft: Radius.circular(isUser ? 18 : 4),
-              bottomRight: Radius.circular(isUser ? 4 : 18),
+    if (isUser) {
+      return Align(
+        alignment: Alignment.centerRight,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            decoration: const BoxDecoration(
+              color: AppColors.primaryGreen,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(18),
+                topRight: Radius.circular(18),
+                bottomLeft: Radius.circular(18),
+                bottomRight: Radius.circular(4),
+              ),
             ),
-            border: isUser ? null : Border.all(color: context.borderColor),
+            child: Text(
+              message.text,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                height: 1.45,
+              ),
+            ),
           ),
-          child: isUser
-              ? Text(
-                  message.text,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    height: 1.45,
-                  ),
-                )
-              : FormattedAiText(
-                  text: message.text,
-                  baseStyle: TextStyle(
-                    color: context.textPrimary,
-                    fontSize: 14,
-                    height: 1.5,
-                  ),
-                ),
         ),
-      ),
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        SpendiAvatar(pose: pose, size: 34),
+        const SizedBox(width: 8),
+        Flexible(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+              decoration: BoxDecoration(
+                color: context.cardBg,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(18),
+                  topRight: Radius.circular(18),
+                  bottomLeft: Radius.circular(4),
+                  bottomRight: Radius.circular(18),
+                ),
+                border: Border.all(color: context.borderColor),
+              ),
+              child: FormattedAiText(
+                text: message.text,
+                baseStyle: TextStyle(
+                  color: context.textPrimary,
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -458,21 +486,30 @@ class _TypingBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: context.cardBg,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: context.borderColor),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        const SpendiAvatar(pose: SpendiPose.thinking, size: 34),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: context.cardBg,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(18),
+              topRight: Radius.circular(18),
+              bottomLeft: Radius.circular(4),
+              bottomRight: Radius.circular(18),
+            ),
+            border: Border.all(color: context.borderColor),
+          ),
+          child: const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
         ),
-        child: const SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
-      ),
+      ],
     );
   }
 }

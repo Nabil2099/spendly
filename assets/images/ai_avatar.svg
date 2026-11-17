@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <!-- Soft halo background -->
+  <circle cx="60" cy="62" r="52" fill="#E4EFEA"/>
+  <!-- Sparkle antenna -->
+  <path d="M60 12V24" stroke="#4F6D8A" stroke-width="4" stroke-linecap="round"/>
+  <path d="M60 4L62.8 10.2L69 13L62.8 15.8L60 22L57.2 15.8L51 13L57.2 10.2L60 4Z" fill="#E1B07E"/>
+  <!-- Ears / side pods -->
+  <rect x="16" y="52" width="12" height="24" rx="6" fill="#4F6D8A"/>
+  <rect x="92" y="52" width="12" height="24" rx="6" fill="#4F6D8A"/>
+  <!-- Head -->
+  <rect x="24" y="28" width="72" height="64" rx="26" fill="#0F7A5F"/>
+  <!-- Visor / face screen -->
+  <rect x="33" y="42" width="54" height="32" rx="14" fill="#192A26"/>
+  <!-- Friendly eyes -->
+  <circle cx="47" cy="57" r="5.5" fill="#A8E6CF"/>
+  <circle cx="73" cy="57" r="5.5" fill="#A8E6CF"/>
+  <circle cx="48.5" cy="55.5" r="1.8" fill="#FFFFFF"/>
+  <circle cx="74.5" cy="55.5" r="1.8" fill="#FFFFFF"/>
+  <!-- Gentle smile -->
+  <path d="M53 65C55.5 68 64.5 68 67 65" stroke="#A8E6CF" stroke-width="3" stroke-linecap="round"/>
+  <!-- Collar / shoulders -->
+  <path d="M36 96C36 89.3726 41.3726 84 48 84H72C78.6274 84 84 89.3726 84 96V102H36V96Z" fill="#4F6D8A"/>
+  <!-- Chest coin/badge -->
+  <circle cx="60" cy="95" r="5" fill="#E1B07E"/>
+</svg>
+

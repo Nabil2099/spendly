@@ -11,6 +11,7 @@ import '../../features/expenses/data/expense_repository.dart';
 import '../../features/expenses/presentation/expense_cubit.dart';
 import '../../features/profile/data/profile_repository.dart';
 import '../../features/profile/presentation/profile_cubit.dart';
+import '../l10n/locale_cubit.dart';
 import '../services/preferences_service.dart';
 import '../theme/theme_cubit.dart';
 
@@ -73,6 +74,14 @@ Future<void> setupServiceLocator({
 
   getIt.registerFactory<ThemeCubit>(
     () => ThemeCubit(
+      preferencesService: getIt.isRegistered<PreferencesService>()
+          ? getIt<PreferencesService>()
+          : null,
+    ),
+  );
+
+  getIt.registerFactory<LocaleCubit>(
+    () => LocaleCubit(
       preferencesService: getIt.isRegistered<PreferencesService>()
           ? getIt<PreferencesService>()
           : null,

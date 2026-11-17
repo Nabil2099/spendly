@@ -12,6 +12,7 @@ class AiChatState {
     this.errorMessage,
     this.briefText,
     this.briefMonthKey,
+    this.briefLanguageCode,
     this.isLoadingBrief = false,
     this.briefError,
     required this.isConfigured,
@@ -23,6 +24,7 @@ class AiChatState {
   final String? errorMessage;
   final String? briefText;
   final String? briefMonthKey;
+  final String? briefLanguageCode;
   final bool isLoadingBrief;
   final String? briefError;
   final bool isConfigured;
@@ -35,6 +37,7 @@ class AiChatState {
     bool clearError = false,
     String? briefText,
     String? briefMonthKey,
+    String? briefLanguageCode,
     bool? isLoadingBrief,
     String? briefError,
     bool clearBriefError = false,
@@ -45,6 +48,7 @@ class AiChatState {
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       briefText: briefText ?? this.briefText,
       briefMonthKey: briefMonthKey ?? this.briefMonthKey,
+      briefLanguageCode: briefLanguageCode ?? this.briefLanguageCode,
       isLoadingBrief: isLoadingBrief ?? this.isLoadingBrief,
       briefError: clearBriefError ? null : (briefError ?? this.briefError),
       isConfigured: isConfigured,
@@ -68,6 +72,7 @@ class AiChatCubit extends Cubit<AiChatState> {
   Future<void> sendMessage(
     String rawText, {
     required ExpenseState expenseState,
+    String languageCode = 'en',
   }) async {
     final text = rawText.trim();
     if (text.isEmpty || state.isSending) return;
@@ -90,7 +95,10 @@ class AiChatCubit extends Cubit<AiChatState> {
     try {
       final reply = await _service.sendMessage(
         history: updatedHistory,
-        systemContext: _buildSystemContext(expenseState),
+        systemContext: _buildSystemContext(
+          expenseState,
+          languageCode: languageCode,
+        ),
       );
       if (isClosed) return;
 
@@ -126,21 +134,25 @@ class AiChatCubit extends Cubit<AiChatState> {
   /// Generates a concise AI spending brief and 2 tips for [expenseState].
   Future<void> generateMonthlyBrief(
     ExpenseState expenseState, {
+    String languageCode = 'en',
     bool forceRefresh = false,
   }) async {
     if (!state.isConfigured || state.isLoadingBrief) return;
     final monthKey = expenseState.selectedMonthKey;
     if (!forceRefresh &&
         state.briefText != null &&
-        state.briefMonthKey == monthKey) {
+        state.briefMonthKey == monthKey &&
+        state.briefLanguageCode == languageCode) {
       return;
     }
     if (expenseState.monthlyExpenses.isEmpty) {
       emit(
         state.copyWith(
-          briefText:
-              'Add a few expenses this month to get your **AI spending brief** and personalized tips.',
+          briefText: languageCode == 'ar'
+              ? 'أضف بعض المصاريف هذا الشهر للحصول على **ملخص الإنفاق الذكي** ونصائح مخصصة.'
+              : 'Add a few expenses this month to get your **AI spending brief** and personalized tips.',
           briefMonthKey: monthKey,
+          briefLanguageCode: languageCode,
           clearBriefError: true,
         ),
       );
@@ -151,27 +163,30 @@ class AiChatCubit extends Cubit<AiChatState> {
       state.copyWith(
         isLoadingBrief: true,
         briefMonthKey: monthKey,
+        briefLanguageCode: languageCode,
         clearBriefError: true,
       ),
     );
 
     try {
+      final prompt = languageCode == 'ar'
+          ? 'قدّم ملخصاً موجزاً من جملتين لإنفاقي هذا الشهر ونصيحتين عمليتين قصيرتين في نقاط.'
+          : 'Give me a brief 2-sentence summary of my spending this month and 2 short actionable bullet-point tips.';
       final reply = await _service.sendMessage(
         history: [
-          ChatMessage(
-            isUser: true,
-            text:
-                'Give me a brief 2-sentence summary of my spending this month and 2 short actionable bullet-point tips.',
-            timestamp: DateTime.now(),
-          ),
+          ChatMessage(isUser: true, text: prompt, timestamp: DateTime.now()),
         ],
-        systemContext: _buildSystemContext(expenseState),
+        systemContext: _buildSystemContext(
+          expenseState,
+          languageCode: languageCode,
+        ),
       );
       if (isClosed) return;
       emit(
         state.copyWith(
           briefText: reply,
           briefMonthKey: monthKey,
+          briefLanguageCode: languageCode,
           isLoadingBrief: false,
         ),
       );
@@ -189,7 +204,10 @@ class AiChatCubit extends Cubit<AiChatState> {
     }
   }
 
-  String _buildSystemContext(ExpenseState expenseState) {
+  String _buildSystemContext(
+    ExpenseState expenseState, {
+    String languageCode = 'en',
+  }) {
     final monthLabel = DateFormat.yMMMM().format(expenseState.selectedMonth);
     final total = MoneyFormatter.formatEgp(expenseState.monthlyTotalMinor);
     final budget = expenseState.budgetLimitMinor != null
@@ -215,8 +233,13 @@ class AiChatCubit extends Cubit<AiChatState> {
       );
     }
 
+    final languageRule = languageCode == 'ar'
+        ? 'IMPORTANT: Respond entirely in natural, clear Arabic (العربية) and use ج.م for EGP amounts.'
+        : 'Respond in clear English.';
+
     return '''
-You are Spendly AI, a concise, practical personal finance advisor for an expense tracker app in Egypt (currency: EGP).
+You are Spendi AI, a concise, practical personal finance advisor for an expense tracker app in Egypt (currency: EGP).
+$languageRule
 Give clear, actionable, friendly budgeting and spending advice based on the user's real data below.
 Format responses cleanly: start with a 1-2 sentence takeaway, then use short bullet points (`- `) with **bolded** key figures or categories. Keep total length concise.
 

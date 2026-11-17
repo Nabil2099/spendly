@@ -6,6 +6,7 @@ import 'package:spendly/features/expenses/data/expense_model.dart';
 import 'package:spendly/features/expenses/presentation/expense_cubit.dart';
 import 'package:spendly/features/expenses/presentation/expense_form_screen.dart';
 import 'package:spendly/features/expenses/presentation/widgets/expense_list_tile.dart';
+import 'package:spendly/l10n/app_localizations.dart';
 
 import 'expense_cubit_test.dart';
 
@@ -38,20 +39,24 @@ void main() {
     expect(draft.note, 'Airport ride');
   });
 
-  test('ParsedExpenseDraft.fromJsonString falls back safely on invalid date', () {
-    final fallback = DateTime(2026, 11, 17, 10, 30);
-    const json = '{"title":"Coffee","amount":65,"category":"unknown","date":"bad"}';
+  test(
+    'ParsedExpenseDraft.fromJsonString falls back safely on invalid date',
+    () {
+      final fallback = DateTime(2026, 11, 17, 10, 30);
+      const json =
+          '{"title":"Coffee","amount":65,"category":"unknown","date":"bad"}';
 
-    final draft = ParsedExpenseDraft.fromJsonString(
-      json,
-      fallbackDate: fallback,
-    );
+      final draft = ParsedExpenseDraft.fromJsonString(
+        json,
+        fallbackDate: fallback,
+      );
 
-    expect(draft.title, 'Coffee');
-    expect(draft.amountMinor, 6500);
-    expect(draft.category, ExpenseCategory.other);
-    expect(draft.date, fallback);
-  });
+      expect(draft.title, 'Coffee');
+      expect(draft.amountMinor, 6500);
+      expect(draft.category, ExpenseCategory.other);
+      expect(draft.date, fallback);
+    },
+  );
 
   test('ParsedExpenseDraft.parseReceiptList parses multiple receipt items', () {
     const json = '''
@@ -91,6 +96,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: BlocProvider(
           create: (_) => ExpenseCubit(
             expenseRepository: expenseRepo,
@@ -187,6 +194,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: BlocProvider(
           create: (_) => ExpenseCubit(
             expenseRepository: expenseRepo,
@@ -202,4 +211,3 @@ void main() {
     expect(find.text('Latte'), findsOneWidget);
   });
 }
-

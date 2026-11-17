@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/l10n/l10n.dart';
 import 'auth_cubit.dart';
 
 /// Lightweight Login / Register screen shown before entering the 3-screen app.
@@ -80,8 +81,8 @@ class _AuthViewState extends State<AuthView> {
                               children: [
                                 Text(
                                   _isRegisterMode
-                                      ? 'Create account'
-                                      : 'Welcome back',
+                                      ? context.l10n.createAccountTitle
+                                      : context.l10n.welcomeBack,
                                   style: Theme.of(context).textTheme.titleLarge,
                                 ),
                                 const SizedBox(height: 4),
@@ -116,9 +117,11 @@ class _AuthViewState extends State<AuthView> {
                                   textInputAction: TextInputAction.next,
                                   enabled:
                                       !state.isSubmitting && !isUnconfigured,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Email',
-                                    prefixIcon: Icon(Icons.email_outlined),
+                                  decoration: InputDecoration(
+                                    labelText: context.l10n.email,
+                                    prefixIcon: const Icon(
+                                      Icons.email_outlined,
+                                    ),
                                   ),
                                   validator: (value) {
                                     final text = value?.trim() ?? '';
@@ -145,7 +148,7 @@ class _AuthViewState extends State<AuthView> {
                                       ? null
                                       : (_) => _submit(),
                                   decoration: InputDecoration(
-                                    labelText: 'Password',
+                                    labelText: context.l10n.password,
                                     prefixIcon: const Icon(Icons.lock_outline),
                                     suffixIcon: IconButton(
                                       onPressed: () {
@@ -181,7 +184,7 @@ class _AuthViewState extends State<AuthView> {
                                         !state.isSubmitting && !isUnconfigured,
                                     onFieldSubmitted: (_) => _submit(),
                                     decoration: InputDecoration(
-                                      labelText: 'Confirm Password',
+                                      labelText: context.l10n.confirmPassword,
                                       prefixIcon: const Icon(
                                         Icons.lock_reset_outlined,
                                       ),
@@ -229,8 +232,8 @@ class _AuthViewState extends State<AuthView> {
                                         )
                                       : Text(
                                           _isRegisterMode
-                                              ? 'Create Account'
-                                              : 'Sign In',
+                                              ? context.l10n.createAccount
+                                              : context.l10n.signIn,
                                         ),
                                 ),
                                 const SizedBox(height: 12),

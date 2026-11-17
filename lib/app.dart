@@ -3,10 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import 'core/di/service_locator.dart';
+import 'core/l10n/locale_cubit.dart';
 import 'core/router/app_router.dart';
 import 'core/services/preferences_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_cubit.dart';
+import 'l10n/app_localizations.dart';
 import 'features/ai_advisor/presentation/ai_chat_cubit.dart';
 import 'features/auth/presentation/auth_cubit.dart';
 import 'features/expenses/presentation/expense_cubit.dart';
@@ -24,6 +26,7 @@ class SpendlyApp extends StatefulWidget {
 
 class _SpendlyAppState extends State<SpendlyApp> {
   late final ThemeCubit _themeCubit;
+  late final LocaleCubit _localeCubit;
   late final AuthCubit _authCubit;
   late final ExpenseCubit _expenseCubit;
   late final ProfileCubit _profileCubit;
@@ -35,6 +38,7 @@ class _SpendlyAppState extends State<SpendlyApp> {
   void initState() {
     super.initState();
     _themeCubit = getIt<ThemeCubit>();
+    _localeCubit = getIt<LocaleCubit>();
     _authCubit = getIt<AuthCubit>();
     _expenseCubit = getIt<ExpenseCubit>();
     _profileCubit = getIt<ProfileCubit>();
@@ -68,6 +72,7 @@ class _SpendlyAppState extends State<SpendlyApp> {
     _router.dispose();
     _routerNotifier.dispose();
     _themeCubit.close();
+    _localeCubit.close();
     _authCubit.close();
     _expenseCubit.close();
     _profileCubit.close();
@@ -80,6 +85,7 @@ class _SpendlyAppState extends State<SpendlyApp> {
     return MultiBlocProvider(
       providers: [
         BlocProvider.value(value: _themeCubit),
+        BlocProvider.value(value: _localeCubit),
         BlocProvider.value(value: _authCubit),
         BlocProvider.value(value: _expenseCubit),
         BlocProvider.value(value: _profileCubit),
@@ -94,13 +100,21 @@ class _SpendlyAppState extends State<SpendlyApp> {
         },
         child: BlocBuilder<ThemeCubit, ThemeMode>(
           builder: (context, themeMode) {
-            return MaterialApp.router(
-              title: 'Spendly',
-              debugShowCheckedModeBanner: false,
-              theme: buildSpendlyTheme(),
-              darkTheme: buildSpendlyDarkTheme(),
-              themeMode: themeMode,
-              routerConfig: _router,
+            return BlocBuilder<LocaleCubit, Locale>(
+              builder: (context, locale) {
+                return MaterialApp.router(
+                  title: 'Spendly',
+                  debugShowCheckedModeBanner: false,
+                  theme: buildSpendlyTheme(),
+                  darkTheme: buildSpendlyDarkTheme(),
+                  themeMode: themeMode,
+                  locale: locale,
+                  supportedLocales: AppLocalizations.supportedLocales,
+                  localizationsDelegates:
+                      AppLocalizations.localizationsDelegates,
+                  routerConfig: _router,
+                );
+              },
             );
           },
         ),

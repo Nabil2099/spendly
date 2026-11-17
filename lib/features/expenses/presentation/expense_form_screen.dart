@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/money_formatter.dart';
+import '../../../core/l10n/l10n.dart';
 import '../../ai_advisor/data/gemini_chat_service.dart';
 import '../data/expense_model.dart';
 import 'expense_cubit.dart';
@@ -138,9 +139,8 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
     } on GeminiFailure catch (e) {
       if (!mounted) return;
       setState(() => _isScanning = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
     } catch (_) {
       if (!mounted) return;
       setState(() => _isScanning = false);
@@ -209,7 +209,9 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.isEditing ? 'Edit Expense' : 'Add Expense'),
+        title: Text(
+          widget.isEditing ? context.l10n.editExpense : context.l10n.addExpense,
+        ),
         centerTitle: true,
       ),
       body: SafeArea(
@@ -242,8 +244,8 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
                               ),
                         label: Text(
                           _isScanning
-                              ? 'Scanning receipt with AI...'
-                              : 'Scan Receipt with AI',
+                              ? context.l10n.scanningReceiptAi
+                              : context.l10n.scanReceiptAi,
                         ),
                       ),
                       const SizedBox(height: 14),
@@ -369,7 +371,7 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
                             onPressed: isSaving
                                 ? null
                                 : () => context.pop(false),
-                            child: const Text('Cancel'),
+                            child: Text(context.l10n.cancel),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -385,7 +387,11 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
                                       color: Colors.white,
                                     ),
                                   )
-                                : Text(widget.isEditing ? 'Update' : 'Save'),
+                                : Text(
+                                    widget.isEditing
+                                        ? context.l10n.update
+                                        : context.l10n.save,
+                                  ),
                           ),
                         ),
                       ],
@@ -523,7 +529,7 @@ class _CategoryGrid extends StatelessWidget {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            category.label,
+                            category.localizedLabel(context.l10n),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -696,9 +702,7 @@ class _ItemEditorDialogState extends State<_ItemEditorDialog> {
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController(
-      text: widget.initial?.title ?? '',
-    );
+    _titleController = TextEditingController(text: widget.initial?.title ?? '');
     _amountController = TextEditingController(
       text: widget.initial != null
           ? MoneyFormatter.formatEditable(widget.initial!.amountMinor)
@@ -771,10 +775,8 @@ class _ItemEditorDialogState extends State<_ItemEditorDialog> {
                 decoration: const InputDecoration(labelText: 'Category'),
                 items: ExpenseCategory.values
                     .map(
-                      (cat) => DropdownMenuItem(
-                        value: cat,
-                        child: Text(cat.label),
-                      ),
+                      (cat) =>
+                          DropdownMenuItem(value: cat, child: Text(cat.label)),
                     )
                     .toList(),
                 onChanged: (val) {

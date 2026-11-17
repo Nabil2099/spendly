@@ -8,6 +8,7 @@ class PreferencesService {
   static const String _lastCategoryKey = 'last_category';
   static const String _hasSeenOnboardingKey = 'has_seen_onboarding';
   static const String _themeModeKey = 'theme_mode';
+  static const String _localeCodeKey = 'locale_code';
 
   Box<dynamic>? _box;
 
@@ -46,5 +47,13 @@ class PreferencesService {
 
   Future<void> setThemeMode(String mode) async {
     await _box?.put(_themeModeKey, mode);
+  }
+
+  String? getLocaleCode() {
+    return _box?.get(_localeCodeKey) as String?;
+  }
+
+  Future<void> setLocaleCode(String code) async {
+    await _box?.put(_localeCodeKey, code);
   }
 }

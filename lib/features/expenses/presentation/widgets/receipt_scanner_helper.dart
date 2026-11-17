@@ -287,8 +287,9 @@ class _ReceiptItemsSheetState extends State<_ReceiptItemsSheet> {
                         activeColor: AppColors.primaryGreen,
                         onChanged: (_isSavingAll || !canSelect)
                             ? null
-                            : (val) =>
-                                  setState(() => _selected[index] = val ?? false),
+                            : (val) => setState(
+                                () => _selected[index] = val ?? false,
+                              ),
                       ),
                       title: Row(
                         children: [
