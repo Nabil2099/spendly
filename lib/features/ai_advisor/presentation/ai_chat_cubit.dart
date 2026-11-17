@@ -10,6 +10,10 @@ class AiChatState {
     this.messages = const [],
     this.isSending = false,
     this.errorMessage,
+    this.briefText,
+    this.briefMonthKey,
+    this.isLoadingBrief = false,
+    this.briefError,
     required this.isConfigured,
     required this.modelName,
   });
@@ -17,6 +21,10 @@ class AiChatState {
   final List<ChatMessage> messages;
   final bool isSending;
   final String? errorMessage;
+  final String? briefText;
+  final String? briefMonthKey;
+  final bool isLoadingBrief;
+  final String? briefError;
   final bool isConfigured;
   final String modelName;
 
@@ -25,11 +33,20 @@ class AiChatState {
     bool? isSending,
     String? errorMessage,
     bool clearError = false,
+    String? briefText,
+    String? briefMonthKey,
+    bool? isLoadingBrief,
+    String? briefError,
+    bool clearBriefError = false,
   }) {
     return AiChatState(
       messages: messages ?? this.messages,
       isSending: isSending ?? this.isSending,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      briefText: briefText ?? this.briefText,
+      briefMonthKey: briefMonthKey ?? this.briefMonthKey,
+      isLoadingBrief: isLoadingBrief ?? this.isLoadingBrief,
+      briefError: clearBriefError ? null : (briefError ?? this.briefError),
       isConfigured: isConfigured,
       modelName: modelName,
     );
@@ -104,6 +121,72 @@ class AiChatCubit extends Cubit<AiChatState> {
 
   void clearChat() {
     emit(state.copyWith(messages: const [], clearError: true));
+  }
+
+  /// Generates a concise AI spending brief and 2 tips for [expenseState].
+  Future<void> generateMonthlyBrief(
+    ExpenseState expenseState, {
+    bool forceRefresh = false,
+  }) async {
+    if (!state.isConfigured || state.isLoadingBrief) return;
+    final monthKey = expenseState.selectedMonthKey;
+    if (!forceRefresh &&
+        state.briefText != null &&
+        state.briefMonthKey == monthKey) {
+      return;
+    }
+    if (expenseState.monthlyExpenses.isEmpty) {
+      emit(
+        state.copyWith(
+          briefText:
+              'Add a few expenses this month to get your **AI spending brief** and personalized tips.',
+          briefMonthKey: monthKey,
+          clearBriefError: true,
+        ),
+      );
+      return;
+    }
+
+    emit(
+      state.copyWith(
+        isLoadingBrief: true,
+        briefMonthKey: monthKey,
+        clearBriefError: true,
+      ),
+    );
+
+    try {
+      final reply = await _service.sendMessage(
+        history: [
+          ChatMessage(
+            isUser: true,
+            text:
+                'Give me a brief 2-sentence summary of my spending this month and 2 short actionable bullet-point tips.',
+            timestamp: DateTime.now(),
+          ),
+        ],
+        systemContext: _buildSystemContext(expenseState),
+      );
+      if (isClosed) return;
+      emit(
+        state.copyWith(
+          briefText: reply,
+          briefMonthKey: monthKey,
+          isLoadingBrief: false,
+        ),
+      );
+    } on GeminiFailure catch (e) {
+      if (isClosed) return;
+      emit(state.copyWith(isLoadingBrief: false, briefError: e.message));
+    } catch (_) {
+      if (isClosed) return;
+      emit(
+        state.copyWith(
+          isLoadingBrief: false,
+          briefError: 'Could not generate AI brief.',
+        ),
+      );
+    }
   }
 
   String _buildSystemContext(ExpenseState expenseState) {

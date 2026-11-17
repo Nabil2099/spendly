@@ -100,4 +100,17 @@ void main() {
     );
     expect(find.textContaining('Food', findRichText: true), findsOneWidget);
   });
+
+  test('generateMonthlyBrief handles empty month without calling API', () async {
+    final service = FakeGeminiChatService();
+    final cubit = AiChatCubit(service: service);
+    addTearDown(cubit.close);
+
+    await cubit.generateMonthlyBrief(
+      ExpenseState(selectedMonth: DateTime(2026, 11, 1)),
+    );
+
+    expect(cubit.state.briefText, contains('Add a few expenses'));
+    expect(service.capturedContext, isNull);
+  });
 }

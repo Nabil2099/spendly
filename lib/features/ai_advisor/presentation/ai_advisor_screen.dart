@@ -70,7 +70,7 @@ class _AiAdvisorScreenState extends State<AiAdvisorScreen> {
           children: [
             Icon(
               Icons.auto_awesome_rounded,
-              color: AppColors.primaryGreen,
+              color: AppColors.slateBlue,
               size: 20,
             ),
             SizedBox(width: 8),
@@ -224,12 +224,12 @@ class _EmptyChatView extends StatelessWidget {
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-              color: context.greenTint,
+              color: AppColors.slateBlue.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Icon(
               Icons.auto_awesome_rounded,
-              color: AppColors.primaryGreen,
+              color: AppColors.slateBlue,
               size: 32,
             ),
           ),

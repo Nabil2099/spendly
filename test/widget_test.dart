@@ -70,20 +70,26 @@ void main() {
 
     expect(find.text('Spendly'), findsOneWidget);
     expect(find.text('Total Spending'), findsOneWidget);
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('History'), findsNothing);
 
-    await tester.tap(find.text('History'));
+    await tester.tap(find.byIcon(Icons.receipt_long_outlined));
     await tester.pumpAndSettle();
 
     expect(find.text('Search transactions...'), findsOneWidget);
+    expect(find.text('History'), findsOneWidget);
+    expect(find.text('Home'), findsNothing);
 
-    await tester.tap(find.text('Stats'));
+    await tester.tap(find.byIcon(Icons.insights_outlined));
     await tester.pumpAndSettle();
 
     expect(find.text('Analytics'), findsOneWidget);
     expect(find.text('6-Month Comparison'), findsOneWidget);
     expect(find.text('Category Breakdown'), findsOneWidget);
+    expect(find.text('Stats'), findsOneWidget);
+    expect(find.text('History'), findsNothing);
 
-    await tester.tap(find.text('AI'));
+    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
     await tester.pumpAndSettle();
 
     expect(find.text('Spendly AI Advisor'), findsOneWidget);

@@ -3,11 +3,15 @@ import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/money_formatter.dart';
+import '../../ai_advisor/presentation/ai_advisor_screen.dart';
+import '../../ai_advisor/presentation/ai_chat_cubit.dart';
 import '../data/expense_model.dart';
 import 'expense_cubit.dart';
 import 'widgets/category_badge.dart';
@@ -52,6 +56,8 @@ class AnalyticsScreen extends StatelessWidget {
               else ...[
                 _KeyMetricsGrid(state: state),
                 const SizedBox(height: 16),
+                _AiBriefCard(expenseState: state),
+                const SizedBox(height: 16),
                 _SixMonthComparisonCard(
                   months: sixMonthData,
                   selectedMonth: state.selectedMonth,
@@ -85,7 +91,7 @@ class _KeyMetricsGrid extends StatelessWidget {
     final cards = [
       _MetricTile(
         icon: Icons.local_fire_department_rounded,
-        iconColor: AppColors.sandyAccent,
+        iconColor: AppColors.terracotta,
         label: 'Highest Day',
         value: highestDay != null
             ? MoneyFormatter.formatEgp(highestDay.totalMinor)
@@ -96,7 +102,7 @@ class _KeyMetricsGrid extends StatelessWidget {
       ),
       _MetricTile(
         icon: Icons.calculate_rounded,
-        iconColor: AppColors.primaryGreen,
+        iconColor: AppColors.slateBlue,
         label: 'Avg Transaction',
         value: txCount > 0 ? MoneyFormatter.formatEgp(avgMinor) : '—',
         subtitle: '$txCount expense${txCount == 1 ? '' : 's'}',
@@ -198,6 +204,172 @@ class _MetricTile extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _AiBriefCard extends StatefulWidget {
+  const _AiBriefCard({required this.expenseState});
+
+  final ExpenseState expenseState;
+
+  @override
+  State<_AiBriefCard> createState() => _AiBriefCardState();
+}
+
+class _AiBriefCardState extends State<_AiBriefCard> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<AiChatCubit>().generateMonthlyBrief(widget.expenseState);
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _AiBriefCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.expenseState.selectedMonthKey !=
+        widget.expenseState.selectedMonthKey) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        context.read<AiChatCubit>().generateMonthlyBrief(widget.expenseState);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<AiChatCubit, AiChatState>(
+      builder: (context, aiState) {
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: AppColors.slateBlue.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.auto_awesome_rounded,
+                        color: AppColors.slateBlue,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'AI Spending Brief',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                    if (aiState.isConfigured)
+                      IconButton(
+                        tooltip: 'Refresh brief',
+                        onPressed: aiState.isLoadingBrief
+                            ? null
+                            : () => context
+                                  .read<AiChatCubit>()
+                                  .generateMonthlyBrief(
+                                    widget.expenseState,
+                                    forceRefresh: true,
+                                  ),
+                        icon: const Icon(Icons.refresh_rounded, size: 20),
+                      ),
+                    TextButton(
+                      onPressed: () => context.go(AppRoutes.assistant),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.slateBlue,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        minimumSize: const Size(0, 32),
+                      ),
+                      child: const Text(
+                        'Ask AI',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                if (!aiState.isConfigured)
+                  Text(
+                    'Add `GEMINI_API_KEY` to `.env` to unlock automatic AI spending briefs and tips.',
+                    style: TextStyle(color: context.textSecondary, fontSize: 13),
+                  )
+                else if (aiState.isLoadingBrief)
+                  Row(
+                    children: [
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Analyzing your month...',
+                        style: TextStyle(
+                          color: context.textSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  )
+                else if (aiState.briefError != null)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          aiState.briefError!,
+                          style: const TextStyle(
+                            color: AppColors.danger,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => context
+                            .read<AiChatCubit>()
+                            .generateMonthlyBrief(
+                              widget.expenseState,
+                              forceRefresh: true,
+                            ),
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  )
+                else if (aiState.briefText != null)
+                  FormattedAiText(
+                    text: aiState.briefText!,
+                    baseStyle: TextStyle(
+                      color: context.textPrimary,
+                      fontSize: 13.5,
+                      height: 1.5,
+                    ),
+                  )
+                else
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton.icon(
+                      onPressed: () => context
+                          .read<AiChatCubit>()
+                          .generateMonthlyBrief(widget.expenseState),
+                      icon: const Icon(Icons.auto_awesome_rounded, size: 16),
+                      label: const Text('Generate AI Brief'),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

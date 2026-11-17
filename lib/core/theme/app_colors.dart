@@ -16,6 +16,8 @@ abstract final class AppColors {
   static const Color inputFill = Color(0xFFF1F3EC);
   static const Color danger = Color(0xFFB8423E);
   static const Color dangerSurface = Color(0xFFFBEDEC);
+  static const Color terracotta = Color(0xFFD4745E);
+  static const Color slateBlue = Color(0xFF4F6D8A);
 
   // Dark theme tokens
   static const Color darkBackground = Color(0xFF101715);
