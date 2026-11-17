@@ -32,6 +32,7 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
   late final TextEditingController _noteController;
   late ExpenseCategory _selectedCategory;
   late DateTime _selectedDate;
+  late List<ExpenseItem> _items;
   bool _isScanning = false;
 
   @override
@@ -57,6 +58,40 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
         draft?.category ??
         context.read<ExpenseCubit>().state.lastCategory;
     _selectedDate = existing?.date ?? draft?.date ?? DateTime.now();
+    _items = List<ExpenseItem>.from(existing?.items ?? const []);
+  }
+
+  void _syncAmountFromItems() {
+    if (_items.isEmpty) return;
+    final total = _items.fold<int>(0, (sum, item) => sum + item.amountMinor);
+    _amountController.text = MoneyFormatter.formatEditable(total);
+  }
+
+  Future<void> _addOrEditItem({int? index}) async {
+    final existingItem = index != null ? _items[index] : null;
+    final result = await showDialog<ExpenseItem>(
+      context: context,
+      builder: (_) => _ItemEditorDialog(
+        initial: existingItem,
+        defaultCategory: _selectedCategory,
+      ),
+    );
+    if (result == null) return;
+    setState(() {
+      if (index != null) {
+        _items[index] = result;
+      } else {
+        _items.add(result);
+      }
+      _syncAmountFromItems();
+    });
+  }
+
+  void _removeItem(int index) {
+    setState(() {
+      _items.removeAt(index);
+      _syncAmountFromItems();
+    });
   }
 
   Future<void> _scanReceipt() async {
@@ -155,6 +190,7 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
       category: _selectedCategory,
       date: _selectedDate,
       note: _noteController.text,
+      items: _items,
     );
 
     if (!mounted) return;
@@ -316,6 +352,14 @@ class _ExpenseFormScreenState extends State<ExpenseFormScreen> {
                         hintText: 'e.g. Business lunch with team...',
                         prefixIcon: Icon(Icons.notes_rounded),
                       ),
+                    ),
+                    const SizedBox(height: 18),
+                    _ReceiptItemsEditor(
+                      items: _items,
+                      enabled: !isSaving,
+                      onAdd: () => _addOrEditItem(),
+                      onEdit: (index) => _addOrEditItem(index: index),
+                      onRemove: _removeItem,
                     ),
                     const SizedBox(height: 24),
                     Row(
@@ -522,6 +566,232 @@ class _CategoryGrid extends StatelessWidget {
           }).toList(),
         );
       },
+    );
+  }
+}
+
+class _ReceiptItemsEditor extends StatelessWidget {
+  const _ReceiptItemsEditor({
+    required this.items,
+    required this.enabled,
+    required this.onAdd,
+    required this.onEdit,
+    required this.onRemove,
+  });
+
+  final List<ExpenseItem> items;
+  final bool enabled;
+  final VoidCallback onAdd;
+  final ValueChanged<int> onEdit;
+  final ValueChanged<int> onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              items.isEmpty
+                  ? 'Receipt Items (optional)'
+                  : 'Receipt Items (${items.length})',
+              style: TextStyle(
+                color: context.textPrimary,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            TextButton.icon(
+              onPressed: enabled ? onAdd : null,
+              icon: const Icon(Icons.add_rounded, size: 18),
+              label: const Text('Add Item'),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primaryGreen,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: const Size(0, 34),
+              ),
+            ),
+          ],
+        ),
+        if (items.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Card(
+            child: Column(
+              children: List.generate(items.length, (index) {
+                final item = items[index];
+                return Column(
+                  children: [
+                    if (index > 0)
+                      Divider(height: 1, color: context.borderColor),
+                    ListTile(
+                      dense: true,
+                      onTap: enabled ? () => onEdit(index) : null,
+                      leading: CategoryBadge(
+                        category: item.category,
+                        size: 32,
+                        iconSize: 16,
+                      ),
+                      title: Text(
+                        item.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: context.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            MoneyFormatter.formatEgp(item.amountMinor),
+                            style: TextStyle(
+                              color: context.textPrimary,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          IconButton(
+                            tooltip: 'Remove item',
+                            onPressed: enabled ? () => onRemove(index) : null,
+                            icon: Icon(
+                              Icons.close_rounded,
+                              size: 18,
+                              color: context.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              }),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _ItemEditorDialog extends StatefulWidget {
+  const _ItemEditorDialog({this.initial, required this.defaultCategory});
+
+  final ExpenseItem? initial;
+  final ExpenseCategory defaultCategory;
+
+  @override
+  State<_ItemEditorDialog> createState() => _ItemEditorDialogState();
+}
+
+class _ItemEditorDialogState extends State<_ItemEditorDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _titleController;
+  late final TextEditingController _amountController;
+  late ExpenseCategory _category;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(
+      text: widget.initial?.title ?? '',
+    );
+    _amountController = TextEditingController(
+      text: widget.initial != null
+          ? MoneyFormatter.formatEditable(widget.initial!.amountMinor)
+          : '',
+    );
+    _category = widget.initial?.category ?? widget.defaultCategory;
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _amountController.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    final minor = MoneyFormatter.parseToMinor(_amountController.text);
+    if (minor == null) return;
+    Navigator.of(context).pop(
+      ExpenseItem(
+        title: _titleController.text.trim(),
+        amountMinor: minor,
+        category: _category,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.initial == null ? 'Add Receipt Item' : 'Edit Item'),
+      content: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextFormField(
+                controller: _titleController,
+                autofocus: true,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(
+                  labelText: 'Item name',
+                  hintText: 'e.g. Milk, Coffee',
+                ),
+                validator: (val) => (val ?? '').trim().isEmpty
+                    ? 'Item name is required.'
+                    : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _amountController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Amount (EGP)',
+                  prefixText: 'EGP ',
+                ),
+                validator: (val) =>
+                    MoneyFormatter.parseToMinor(val ?? '') == null
+                    ? 'Enter a valid positive amount.'
+                    : null,
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<ExpenseCategory>(
+                initialValue: _category,
+                decoration: const InputDecoration(labelText: 'Category'),
+                items: ExpenseCategory.values
+                    .map(
+                      (cat) => DropdownMenuItem(
+                        value: cat,
+                        child: Text(cat.label),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) setState(() => _category = val);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(onPressed: _save, child: const Text('Save')),
+      ],
     );
   }
 }

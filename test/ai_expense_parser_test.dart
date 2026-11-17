@@ -156,5 +156,50 @@ void main() {
 
     expect(find.text('Latte'), findsNothing);
   });
+
+  testWidgets('ExpenseFormScreen loads existing receipt items in edit mode', (
+    tester,
+  ) async {
+    final expenseRepo = FakeExpenseRepository();
+    final budgetRepo = FakeBudgetRepository();
+    addTearDown(() async {
+      await expenseRepo.dispose();
+      await budgetRepo.dispose();
+    });
+
+    final now = DateTime(2026, 11, 17, 12, 0);
+    final receipt = Expense(
+      id: 'rec_1',
+      title: 'Cafe Receipt',
+      amountMinor: 12050,
+      category: ExpenseCategory.food,
+      date: now,
+      items: const [
+        ExpenseItem(
+          title: 'Latte',
+          amountMinor: 7500,
+          category: ExpenseCategory.food,
+        ),
+      ],
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider(
+          create: (_) => ExpenseCubit(
+            expenseRepository: expenseRepo,
+            budgetRepository: budgetRepo,
+          ),
+          child: ExpenseFormScreen(existing: receipt),
+        ),
+      ),
+    );
+
+    expect(find.text('Edit Expense'), findsOneWidget);
+    expect(find.text('Receipt Items (1)'), findsOneWidget);
+    expect(find.text('Latte'), findsOneWidget);
+  });
 }
 

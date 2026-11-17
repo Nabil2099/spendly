@@ -164,7 +164,7 @@ class Expense {
       'category': category.id,
       'date': Timestamp.fromDate(date),
       'note': note,
-      if (items.isNotEmpty) 'items': items.map((e) => e.toMap()).toList(),
+      'items': items.map((e) => e.toMap()).toList(),
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };

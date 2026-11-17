@@ -386,7 +386,7 @@ class ExpenseCubit extends Cubit<ExpenseState> {
           category: category,
           date: date,
           note: note.trim(),
-          items: items.isNotEmpty ? items : existing.items,
+          items: items,
           updatedAt: now,
         );
         await _expenseRepository.updateExpense(uid, updated);

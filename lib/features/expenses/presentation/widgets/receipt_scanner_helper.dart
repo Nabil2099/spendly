@@ -21,6 +21,7 @@ Future<List<ParsedExpenseDraft>?> pickAndScanReceipt(
 }) async {
   final source = await showModalBottomSheet<ImageSource>(
     context: context,
+    useRootNavigator: true,
     backgroundColor: context.cardBg,
     showDragHandle: true,
     builder: (sheetContext) => SafeArea(
@@ -92,10 +93,17 @@ Future<bool?> showReceiptItemsSheet(
 ) {
   return showModalBottomSheet<bool>(
     context: context,
+    useRootNavigator: true,
     backgroundColor: context.cardBg,
     isScrollControlled: true,
+    useSafeArea: true,
     showDragHandle: true,
-    builder: (_) => _ReceiptItemsSheet(items: items),
+    builder: (sheetContext) => Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
+      ),
+      child: _ReceiptItemsSheet(items: items),
+    ),
   );
 }
 
@@ -210,9 +218,13 @@ class _ReceiptItemsSheetState extends State<_ReceiptItemsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final maxHeight = MediaQuery.of(context).size.height * 0.72;
+    final media = MediaQuery.sizeOf(context);
+    final insets = MediaQuery.viewInsetsOf(context).bottom;
+    final availableHeight = (media.height - insets) * 0.78;
+    final maxHeight = availableHeight.clamp(240.0, media.height * 0.78);
 
     return SafeArea(
+      top: false,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: maxHeight),
         child: Padding(
